@@ -1,0 +1,51 @@
+{
+  "id": "com.lixee",
+  "version": "0.0.4",
+  "compatibility": ">=5.0.0",
+  "sdk": 3,
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "liXee"
+  },
+  "brandColor": "#446BA5",
+  "description": {
+    "en": "LiXee store was created to offer products for home automation.",
+    "fr": "La boutique LiXee a été créée pour proposer aux passionnés des produits destinés au domaine de la domotique."
+  },
+  "category": [
+    "energy"
+  ],
+  "permissions": [],
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "Casa Montevrain",
+    "email": "casamontevrain@gmail.com"
+  },
+  "tags": {
+    "en": [
+      "Energy"
+    ],
+    "fr": [
+      "Energy"
+    ]
+  },
+  "contributors": {
+    "developers": [
+      {
+        "name": "Chamois Mathieu"
+      }
+    ],
+    "translators": [
+      {
+        "name": "Chamois Mathieu"
+      }
+    ]
+  },
+  "homepage": "https://lixee.fr/"
+}

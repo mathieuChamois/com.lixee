@@ -1,0 +1,11 @@
+{
+  "type": "number",
+  "title": { "en": "Summation delivered" },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "units": { "en": "kwh" },
+  "step": 0.5,
+  "insights": true,
+  "icon": "/assets/zap.svg"
+}

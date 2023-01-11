@@ -1,0 +1,192 @@
+{
+  "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
+  "id": "com.lixee",
+  "version": "0.0.4",
+  "compatibility": ">=5.0.0",
+  "sdk": 3,
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "liXee"
+  },
+  "brandColor": "#446BA5",
+  "description": {
+    "en": "LiXee store was created to offer products for home automation.",
+    "fr": "La boutique LiXee a été créée pour proposer aux passionnés des produits destinés au domaine de la domotique."
+  },
+  "category": [
+    "energy"
+  ],
+  "permissions": [],
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "Casa Montevrain",
+    "email": "casamontevrain@gmail.com"
+  },
+  "tags": {
+    "en": [
+      "Energy"
+    ],
+    "fr": [
+      "Energy"
+    ]
+  },
+  "contributors": {
+    "developers": [
+      {
+        "name": "Chamois Mathieu"
+      }
+    ],
+    "translators": [
+      {
+        "name": "Chamois Mathieu"
+      }
+    ]
+  },
+  "homepage": "https://lixee.fr/",
+  "drivers": [
+    {
+      "name": {
+        "en": "ZLinky_TIC"
+      },
+      "class": "other",
+      "capabilities": [
+        "meter_power",
+        "measure_power",
+        "active_power_capability",
+        "power_factor_capability",
+        "rms_current_capability",
+        "rms_voltage_capability"
+      ],
+      "images": {
+        "small": "/drivers/zlinky_tic/assets/images/small.png",
+        "large": "/drivers/zlinky_tic/assets/images/large.png"
+      },
+      "capabilitiesOptions": {
+        "meter_power": {
+          "title": {
+            "en": "Summation delivered",
+            "fr": "Index Base"
+          }
+        },
+        "measure_power": {
+          "title": {
+            "en": "Apparent power",
+            "fr": "Puissance apparente"
+          }
+        }
+      },
+      "energy": {
+        "cumulative": true
+      },
+      "zigbee": {
+        "manufacturerName": "LiXee",
+        "productId": [
+          "ZLinky_TIC"
+        ],
+        "endpoints": {
+          "1": {
+            "clusters": [
+              0,
+              3,
+              1794,
+              2820,
+              2817,
+              65382
+            ],
+            "bindings": [
+              25
+            ]
+          }
+        }
+      },
+      "id": "zlinky_tic"
+    }
+  ],
+  "capabilities": {
+    "active_power_capability": {
+      "type": "number",
+      "title": {
+        "en": "Active power",
+        "fr": "Energie active"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "W"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/flash.svg"
+    },
+    "power_factor_capability": {
+      "type": "number",
+      "title": {
+        "en": "Power factor",
+        "fr": "Facteur de puissance"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "W"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/angle-acute.svg"
+    },
+    "rms_current_capability": {
+      "type": "number",
+      "title": {
+        "en": "RMS current",
+        "fr": "Valeur efficace courant"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "A"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/current-ac.svg"
+    },
+    "rms_voltage_capability": {
+      "type": "number",
+      "title": {
+        "en": "RMS voltage",
+        "fr": "Valeur efficace tension"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "V"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/current-ac.svg"
+    },
+    "summation_delivered_capability": {
+      "type": "number",
+      "title": {
+        "en": "Summation delivered"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kwh"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/zap.svg"
+    }
+  }
+}

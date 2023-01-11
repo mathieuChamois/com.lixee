@@ -1,0 +1,52 @@
+{
+  "name": { "en": "ZLinky_TIC" },
+  "class": "other",
+  "capabilities": [
+    "meter_power",
+    "measure_power",
+    "active_power_capability",
+    "power_factor_capability",
+    "rms_current_capability",
+    "rms_voltage_capability"
+  ],
+  "images": {
+    "small": "{{driverAssetsPath}}/images/small.png",
+    "large": "{{driverAssetsPath}}/images/large.png"
+  },
+  "capabilitiesOptions": {
+    "meter_power": {
+      "title": {
+        "en": "Summation delivered",
+        "fr": "Index Base"
+      }
+    },
+    "measure_power": {
+      "title": {
+        "en": "Apparent power",
+        "fr": "Puissance apparente"
+      }
+    }
+  },
+  "energy": {
+    "cumulative": true
+  },
+  "zigbee": {
+    "manufacturerName": "LiXee",
+    "productId": ["ZLinky_TIC"],
+    "endpoints": {
+      "1": {
+        "clusters": [
+          0,
+          3,
+          1794,
+          2820,
+          2817,
+          65382
+        ],
+        "bindings": [
+          25
+        ]
+      }
+    }
+  }
+}

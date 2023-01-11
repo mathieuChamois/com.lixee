@@ -1,0 +1,15 @@
+{
+  "type": "number",
+  "title": {
+    "en": "RMS voltage",
+    "fr": "Valeur efficace tension"
+
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "units": { "en": "V" },
+  "step": 0.5,
+  "insights": true,
+  "icon": "/assets/current-ac.svg"
+}

@@ -1,0 +1,14 @@
+{
+  "0.0.1": {
+    "en": "Zlinky first test version"
+  },
+  "0.0.2": {
+    "en": "increase interval to prevent zigbee cluster timeout"
+  },
+  "0.0.3": {
+    "en": "catch error on zigbee cluster timeout"
+  },
+  "0.0.4": {
+    "en": "make structure changes after homey review"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Active power",
+    "fr": "Energie active"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "units": { "en": "W" },
+  "step": 0.5,
+  "insights": true,
+  "icon": "/assets/flash.svg"
+}

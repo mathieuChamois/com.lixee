@@ -1,0 +1,14 @@
+{
+  "type": "number",
+  "title": {
+    "en": "RMS current",
+    "fr": "Valeur efficace courant"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "units": { "en": "A" },
+  "step": 0.5,
+  "insights": true,
+  "icon": "/assets/current-ac.svg"
+}

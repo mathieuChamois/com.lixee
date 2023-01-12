@@ -1,5 +1,5 @@
 const { ZigBeeDevice } = require('homey-zigbeedriver');
-const { CLUSTER } = require('zigbee-clusters');
+const { CLUSTER } = require("zigbee-clusters");
 
 class Device extends ZigBeeDevice {
   async onNodeInit({ zclNode }) {
@@ -45,7 +45,7 @@ class Device extends ZigBeeDevice {
             this.getClusterEndpoint(CLUSTER.METERING)]
             .clusters[CLUSTER.METERING.NAME]);
 
-          this.setCapabilityValue('meter_power', currentSummationDelivered);
+          this.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
         }
       } catch (e) {
         this.log(`Something wrong with zigbee cluster and message : ${e.message}, app will retry later `);

@@ -1,13 +1,14 @@
 {
   "type": "number",
   "title": {
-    "en": "RMS voltage",
-    "fr": "Valeur efficace tension"
+    "en": "Subscribe intensity",
+    "fr": "Intensité souscrite"
+
   },
   "uiComponent": "sensor",
   "getable": true,
   "setable": true,
-  "units": { "en": "V" },
+  "units": { "en": "A" },
   "step": 0.5,
   "insights": true,
   "icon": "/assets/current-ac.svg"

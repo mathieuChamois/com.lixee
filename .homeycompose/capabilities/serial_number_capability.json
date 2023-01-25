@@ -1,0 +1,13 @@
+{
+  "type": "string",
+  "title": {
+    "en": "Serial number",
+    "fr": "Numéro de série"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "step": 0.5,
+  "insights": false,
+  "icon": "/assets/serial-number.svg"
+}

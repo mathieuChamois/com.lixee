@@ -1,0 +1,36 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Price option",
+    "fr": "Option tarifaire"
+  },
+  "values": [
+    {
+      "id": "BASE",
+      "title": {
+        "en": "Base Option",
+        "fr": "Option Base"
+      }
+    },
+    {
+      "id": "HC",
+      "title": {
+        "en": "Empty Hour Option",
+        "fr": "Option Heures Creuses"
+      }
+    },
+    {
+      "id": "EJP",
+      "title": {
+        "en": "EJP Option",
+        "fr": "Option EJP"
+      }
+    }
+  ],
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "step": 0.5,
+  "insights": false,
+  "icon": "/assets/contract.svg"
+}

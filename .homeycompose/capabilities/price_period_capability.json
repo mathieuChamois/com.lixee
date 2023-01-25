@@ -1,0 +1,50 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Price period",
+    "fr": "Période tarifaire"
+  },
+  "values": [
+    {
+      "id": "TH..",
+      "title": {
+        "en": "Every Hours",
+        "fr": "Toutes les Heures"
+      }
+    },
+    {
+      "id": "HC..",
+      "title": {
+        "en": "Empty Hours",
+        "fr": "Heures Creuses"
+      }
+    },
+    {
+      "id": "HP..",
+      "title": {
+        "en": "Full Hours",
+        "fr": "Heures Pleines"
+      }
+    },
+    {
+      "id": "HN..",
+      "title": {
+        "en": "Regular Hours",
+        "fr": "Heures Normales"
+      }
+    },
+    {
+      "id": "PM..",
+      "title": {
+        "en": "Mobil point hours",
+        "fr": "Heures de Pointe Mobile"
+      }
+    }
+  ],
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "step": 0.5,
+  "insights": false,
+  "icon": "/assets/clock.svg"
+}

@@ -10,5 +10,11 @@
   },
   "0.0.4": {
     "en": "make structure changes after homey review"
+  },
+  "0.0.5": {
+    "en": "divide by 1000 for current summation delivered"
+  },
+  "0.0.6": {
+    "en": "change zlinky device icon"
   }
 }

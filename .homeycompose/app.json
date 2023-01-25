@@ -1,6 +1,6 @@
 {
   "id": "com.lixee",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "platforms": [
@@ -24,8 +24,8 @@
     "xlarge": "/assets/images/xlarge.png"
   },
   "author": {
-    "name": "Casa Montevrain",
-    "email": "casamontevrain@gmail.com"
+    "name": "Chamois Mathieu",
+    "email": "chamois.mat@gmail.com"
   },
   "tags": {
     "en": [

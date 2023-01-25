@@ -2,12 +2,19 @@
   "name": { "en": "ZLinky_TIC" },
   "class": "other",
   "capabilities": [
+    "price_option_capability",
+    "serial_number_capability",
+    "price_period_capability",
+    "tomorrow_color_capability",
+    "subscribe_intensity_capability",
+    "alarm_subscribe_power_capability",
     "meter_power",
     "measure_power",
     "active_power_capability",
-    "power_factor_capability",
     "rms_current_capability",
-    "rms_voltage_capability"
+    "rms_voltage_capability",
+    "maximal_intensity_capability",
+    "clock_full_hour_empty_hour_capability"
   ],
   "images": {
     "small": "{{driverAssetsPath}}/images/small.png",
@@ -17,7 +24,7 @@
     "meter_power": {
       "title": {
         "en": "Summation delivered",
-        "fr": "Index Base"
+        "fr": "Index"
       }
     },
     "measure_power": {
@@ -41,6 +48,7 @@
           1794,
           2820,
           2817,
+          4097,
           65382
         ],
         "bindings": [

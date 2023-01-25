@@ -25,8 +25,8 @@
     "xlarge": "/assets/images/xlarge.png"
   },
   "author": {
-    "name": "Casa Montevrain",
-    "email": "casamontevrain@gmail.com"
+    "name": "Chamois Mathieu",
+    "email": "chamois.mat@gmail.com"
   },
   "tags": {
     "en": [
@@ -211,6 +211,22 @@
       "step": 0.5,
       "insights": true,
       "icon": "/assets/current-ac.svg"
+    },
+    "power_factor_capability": {
+      "type": "number",
+      "title": {
+        "en": "Power factor",
+        "fr": "Facteur de puissance"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "W"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/angle-acute.svg"
     },
     "price_option_capability": {
       "type": "enum",

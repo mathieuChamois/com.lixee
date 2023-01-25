@@ -1,0 +1,50 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Clock Full Hour Empty Hour",
+    "fr": "Horaire Heure Pleines Heures Creuses"
+  },
+  "values": [
+    {
+      "id": "A",
+      "title": {
+        "en": "A",
+        "fr": "A"
+      }
+    },
+    {
+      "id": "C",
+      "title": {
+        "en": "C",
+        "fr": "C"
+      }
+    },
+    {
+      "id": "D",
+      "title": {
+        "en": "D",
+        "fr": "D"
+      }
+    },
+    {
+      "id": "E",
+      "title": {
+        "en": "E",
+        "fr": "E"
+      }
+    },
+    {
+      "id": "Y",
+      "title": {
+        "en": "Y",
+        "fr": "Y"
+      }
+    }
+  ],
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "step": 0.5,
+  "insights": false,
+  "icon": "/assets/clock.svg"
+}

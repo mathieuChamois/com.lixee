@@ -56,12 +56,19 @@
       },
       "class": "other",
       "capabilities": [
+        "price_option_capability",
+        "serial_number_capability",
+        "price_period_capability",
+        "tomorrow_color_capability",
+        "subscribe_intensity_capability",
+        "alarm_subscribe_power_capability",
         "meter_power",
         "measure_power",
         "active_power_capability",
-        "power_factor_capability",
         "rms_current_capability",
-        "rms_voltage_capability"
+        "rms_voltage_capability",
+        "maximal_intensity_capability",
+        "clock_full_hour_empty_hour_capability"
       ],
       "images": {
         "small": "/drivers/zlinky_tic/assets/images/small.png",
@@ -71,7 +78,7 @@
         "meter_power": {
           "title": {
             "en": "Summation delivered",
-            "fr": "Index Base"
+            "fr": "Index"
           }
         },
         "measure_power": {
@@ -97,6 +104,7 @@
               1794,
               2820,
               2817,
+              4097,
               65382
             ],
             "bindings": [
@@ -125,21 +133,170 @@
       "insights": true,
       "icon": "/assets/flash.svg"
     },
-    "power_factor_capability": {
+    "alarm_subscribe_power_capability": {
+      "type": "boolean",
+      "title": {
+        "en": "Subscribe power alert",
+        "fr": "Alerte de puissance souscrite"
+      },
+      "getable": true,
+      "setable": true,
+      "insights": true,
+      "uiComponent": "sensor",
+      "uiQuickAction": false,
+      "icon": "/assets/alert.svg"
+    },
+    "clock_full_hour_empty_hour_capability": {
+      "type": "enum",
+      "title": {
+        "en": "Clock Full Hour Empty Hour",
+        "fr": "Horaire Heure Pleines Heures Creuses"
+      },
+      "values": [
+        {
+          "id": "A",
+          "title": {
+            "en": "A",
+            "fr": "A"
+          }
+        },
+        {
+          "id": "C",
+          "title": {
+            "en": "C",
+            "fr": "C"
+          }
+        },
+        {
+          "id": "D",
+          "title": {
+            "en": "D",
+            "fr": "D"
+          }
+        },
+        {
+          "id": "E",
+          "title": {
+            "en": "E",
+            "fr": "E"
+          }
+        },
+        {
+          "id": "Y",
+          "title": {
+            "en": "Y",
+            "fr": "Y"
+          }
+        }
+      ],
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "step": 0.5,
+      "insights": false,
+      "icon": "/assets/clock.svg"
+    },
+    "maximal_intensity_capability": {
       "type": "number",
       "title": {
-        "en": "Power factor",
-        "fr": "Facteur de puissance"
+        "en": "Maximal intensity",
+        "fr": "Intensité maximale"
       },
       "uiComponent": "sensor",
       "getable": true,
       "setable": true,
       "units": {
-        "en": "W"
+        "en": "A"
       },
       "step": 0.5,
       "insights": true,
-      "icon": "/assets/angle-acute.svg"
+      "icon": "/assets/current-ac.svg"
+    },
+    "price_option_capability": {
+      "type": "enum",
+      "title": {
+        "en": "Price option",
+        "fr": "Option tarifaire"
+      },
+      "values": [
+        {
+          "id": "BASE",
+          "title": {
+            "en": "Base Option",
+            "fr": "Option Base"
+          }
+        },
+        {
+          "id": "HC",
+          "title": {
+            "en": "Empty Hour Option",
+            "fr": "Option Heures Creuses"
+          }
+        },
+        {
+          "id": "EJP",
+          "title": {
+            "en": "EJP Option",
+            "fr": "Option EJP"
+          }
+        }
+      ],
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "step": 0.5,
+      "insights": false,
+      "icon": "/assets/contract.svg"
+    },
+    "price_period_capability": {
+      "type": "enum",
+      "title": {
+        "en": "Price period",
+        "fr": "Période tarifaire"
+      },
+      "values": [
+        {
+          "id": "TH..",
+          "title": {
+            "en": "Every Hours",
+            "fr": "Toutes les Heures"
+          }
+        },
+        {
+          "id": "HC..",
+          "title": {
+            "en": "Empty Hours",
+            "fr": "Heures Creuses"
+          }
+        },
+        {
+          "id": "HP..",
+          "title": {
+            "en": "Full Hours",
+            "fr": "Heures Pleines"
+          }
+        },
+        {
+          "id": "HN..",
+          "title": {
+            "en": "Regular Hours",
+            "fr": "Heures Normales"
+          }
+        },
+        {
+          "id": "PM..",
+          "title": {
+            "en": "Mobil point hours",
+            "fr": "Heures de Pointe Mobile"
+          }
+        }
+      ],
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "step": 0.5,
+      "insights": false,
+      "icon": "/assets/clock.svg"
     },
     "rms_current_capability": {
       "type": "number",
@@ -173,6 +330,35 @@
       "insights": true,
       "icon": "/assets/current-ac.svg"
     },
+    "serial_number_capability": {
+      "type": "string",
+      "title": {
+        "en": "Serial number",
+        "fr": "Numéro de série"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "step": 0.5,
+      "insights": false,
+      "icon": "/assets/serial-number.svg"
+    },
+    "subscribe_intensity_capability": {
+      "type": "number",
+      "title": {
+        "en": "Subscribe intensity",
+        "fr": "Intensité souscrite"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "A"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/current-ac.svg"
+    },
     "summation_delivered_capability": {
       "type": "number",
       "title": {
@@ -187,6 +373,56 @@
       "step": 0.5,
       "insights": true,
       "icon": "/assets/zap.svg"
+    },
+    "tomorrow_color_capability": {
+      "type": "enum",
+      "title": {
+        "en": "Tomorrow color",
+        "fr": "Demain"
+      },
+      "values": [
+        {
+          "id": "",
+          "title": {
+            "en": "Unkown",
+            "fr": "Non Connue"
+          }
+        },
+        {
+          "id": "----",
+          "title": {
+            "en": "Unkown",
+            "fr": "Non Connue"
+          }
+        },
+        {
+          "id": "BLEU",
+          "title": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
+        },
+        {
+          "id": "BLAN",
+          "title": {
+            "en": "White",
+            "fr": "Blanc"
+          }
+        },
+        {
+          "id": "ROUG",
+          "title": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
+        }
+      ],
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "step": 0.5,
+      "insights": false,
+      "icon": "/assets/sun.svg"
     }
   }
 }

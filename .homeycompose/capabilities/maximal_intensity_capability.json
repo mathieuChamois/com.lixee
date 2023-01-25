@@ -1,13 +1,13 @@
 {
   "type": "number",
   "title": {
-    "en": "RMS voltage",
-    "fr": "Valeur efficace tension"
+    "en": "Maximal intensity",
+    "fr": "Intensité maximale"
   },
   "uiComponent": "sensor",
   "getable": true,
   "setable": true,
-  "units": { "en": "V" },
+  "units": { "en": "A" },
   "step": 0.5,
   "insights": true,
   "icon": "/assets/current-ac.svg"

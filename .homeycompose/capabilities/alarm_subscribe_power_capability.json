@@ -1,0 +1,13 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "Subscribe power alert",
+    "fr": "Alerte de puissance souscrite"
+  },
+  "getable": true,
+  "setable": true,
+  "insights": true,
+  "uiComponent": "sensor",
+  "uiQuickAction": false,
+  "icon": "/assets/alert.svg"
+}

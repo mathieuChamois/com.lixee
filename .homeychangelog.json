@@ -19,5 +19,8 @@
   },
   "0.0.7": {
     "en": "Added missing metrics"
+  },
+  "0.0.8": {
+    "en": "add flow card for alarm power subscribe reach"
   }
 }

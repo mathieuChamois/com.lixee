@@ -16,5 +16,8 @@
   },
   "0.0.6": {
     "en": "change zlinky device icon"
+  },
+  "0.0.7": {
+    "en": "Added missing metrics"
   }
 }

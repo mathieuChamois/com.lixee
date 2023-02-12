@@ -49,6 +49,38 @@
     ]
   },
   "homepage": "https://lixee.fr/",
+  "flow": {
+    "triggers": [
+      {
+        "id": "alarm_subscribe_power_capability_true",
+        "title": {
+          "en": "alarm subscribe power is reached",
+          "fr": "l'alarme de puissance souscrite est atteinte"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=zlinky_tic"
+          }
+        ]
+      },
+      {
+        "id": "alarm_subscribe_power_capability_false",
+        "title": {
+          "en": "alarm subscribe power is not reached",
+          "fr": "l'alarme de puissance souscrite n'est pas atteinte"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=zlinky_tic"
+          }
+        ]
+      }
+    ]
+  },
   "drivers": [
     {
       "name": {

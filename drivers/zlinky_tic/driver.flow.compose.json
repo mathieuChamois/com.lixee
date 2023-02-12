@@ -1,0 +1,18 @@
+{
+  "triggers": [
+    {
+      "id": "alarm_subscribe_power_capability_true",
+      "title": {
+        "en": "alarm subscribe power is reached",
+        "fr": "l'alarme de puissance souscrite est atteinte"
+      }
+    },
+    {
+      "id": "alarm_subscribe_power_capability_false",
+      "title": {
+        "en": "alarm subscribe power is not reached",
+        "fr": "l'alarme de puissance souscrite n'est pas atteinte"
+      }
+    }
+  ]
+}

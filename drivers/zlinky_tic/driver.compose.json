@@ -31,7 +31,8 @@
       "title": {
         "en": "Apparent power",
         "fr": "Puissance apparente"
-      }
+      },
+      "decimals": 2
     }
   },
   "energy": {

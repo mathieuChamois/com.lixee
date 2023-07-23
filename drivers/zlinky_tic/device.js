@@ -134,6 +134,18 @@ class Device extends ZigBeeDevice {
               this.setCapabilityValue('meter_power', (currentSummationDeliveredHCHP / 1000));
             }
             break;
+          case 'HCJB':
+          case 'HPJB':
+          case 'HCJW':
+          case 'HPJW':
+          case 'HCJR':
+          case 'HPJR':
+            if (currentSummationDeliveredHCHP > 0) {
+              this.setCapabilityValue('meter_power', (currentSummationDeliveredHCHP / 1000));
+            } else {
+              this.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+            }
+            break;
           case 'EJP':
           case 'BBRx':
             this.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
@@ -160,6 +172,7 @@ class Device extends ZigBeeDevice {
     await this.removeCapability('rms_current_capability').catch(this.error);
     await this.removeCapability('power_factor_capability').catch(this.error);
     await this.removeCapability('maximal_intensity_capability').catch(this.error);
+    // await this.removeCapability('apparent_power_capability').catch(this.error);
     await this.addCapability('price_option_capability').catch(this.error);
     await this.addCapability('price_period_capability').catch(this.error);
     await this.addCapability('serial_number_capability').catch(this.error);
@@ -171,6 +184,7 @@ class Device extends ZigBeeDevice {
     await this.addCapability('rms_current_capability').catch(this.error);
     await this.addCapability('rms_voltage_capability').catch(this.error);
     await this.addCapability('active_power_capability').catch(this.error);
+    // await this.addCapability('apparent_power_capability').catch(this.error);
   }
 }
 

@@ -117,7 +117,8 @@
           "title": {
             "en": "Apparent power",
             "fr": "Puissance apparente"
-          }
+          },
+          "decimals": 2
         }
       },
       "energy": {
@@ -286,6 +287,48 @@
           "title": {
             "en": "EJP Option",
             "fr": "Option EJP"
+          }
+        },
+        {
+          "id": "HCJB",
+          "title": {
+            "en": "Full Hour Option blue day",
+            "fr": "Heures Creuses Jours Bleus"
+          }
+        },
+        {
+          "id": "HPJB",
+          "title": {
+            "en": "Full Hour Option blue day",
+            "fr": "Heures Creuses Jours Bleus"
+          }
+        },
+        {
+          "id": "HCJW",
+          "title": {
+            "en": "Full Hour Option blue day",
+            "fr": "Heures Creuses Jours Blancs"
+          }
+        },
+        {
+          "id": "HPJW",
+          "title": {
+            "en": "Full Hour Option blue day",
+            "fr": "Heures Pleines Jours Blancs"
+          }
+        },
+        {
+          "id": "HCJR",
+          "title": {
+            "en": "Full Hour Option blue day",
+            "fr": "Heures Creuses Jours Rouges"
+          }
+        },
+        {
+          "id": "HPJR",
+          "title": {
+            "en": "Full Hour Option blue day",
+            "fr": "Heures Pleines Jours Rouges"
           }
         }
       ],

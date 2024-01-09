@@ -1,0 +1,11 @@
+{
+  "type": "number",
+  "title": { "en": "Phase 3" },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "units": { "en": "kw" },
+  "step": 0.5,
+  "insights": true,
+  "icon": "/assets/zap.svg"
+}

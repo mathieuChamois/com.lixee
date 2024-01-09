@@ -1,0 +1,29 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Phase",
+    "fr": "Phase"
+  },
+  "values": [
+    {
+      "id": "monophase",
+      "title": {
+        "en": "Single Phase",
+        "fr": "Monophasé"
+      }
+    },
+    {
+      "id": "triphase",
+      "title": {
+        "en": "Triple phase",
+        "fr": "Triphasé"
+      }
+    }
+  ],
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "step": 0.5,
+  "insights": false,
+  "icon": "/assets/zap.svg"
+}

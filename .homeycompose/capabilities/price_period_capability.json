@@ -39,6 +39,55 @@
         "en": "Mobil point hours",
         "fr": "Heures de Pointe Mobile"
       }
+    },
+    {
+      "id": "HCJB",
+      "title": {
+        "en": "Empty Hours Blue Days",
+        "fr": "Heures Creuses Jours Bleus"
+      }
+    },
+    {
+      "id": "HCJW",
+      "title": {
+        "en": "Empty Hours White Days",
+        "fr": "Heures Creuses Jours Blancs"
+      }
+    },
+    {
+      "id": "HCJR",
+      "title": {
+        "en": "Empty Hours Red Days",
+        "fr": "Heures Creuses Jours Rouges"
+      }
+    },
+    {
+      "id": "HPJB",
+      "title": {
+        "en": "Full Hours Blue Days",
+        "fr": "Heures Pleines Jours Bleus"
+      }
+    },
+    {
+      "id": "HPJW",
+      "title": {
+        "en": "Full Hours White Days",
+        "fr": "Heures Pleines Jours Blancs"
+      }
+    },
+    {
+      "id": "HPJR",
+      "title": {
+        "en": "Full Hours Red Days",
+        "fr": "Heures Pleines Jours Rouges"
+      }
+    },
+    {
+      "id": "UNKN",
+      "title": {
+        "en": "Unknown",
+        "fr": "Inconnu"
+      }
     }
   ],
   "uiComponent": "sensor",

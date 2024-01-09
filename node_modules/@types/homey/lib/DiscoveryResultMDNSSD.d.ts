@@ -22,4 +22,6 @@ declare class DiscoveryResultMDNSSD extends DiscoveryResult {
     name: string;
     /** The full name of the device. */
     fullname: string;
+    /** The host of the device. */
+    host: string;
 }

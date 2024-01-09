@@ -1,0 +1,13 @@
+{
+  "type": "string",
+  "title": {
+    "en": "Mode",
+    "fr": "Mode"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "step": 0.5,
+  "insights": false,
+  "icon": "/assets/zap.svg"
+}

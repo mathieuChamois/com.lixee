@@ -48,7 +48,7 @@ jobs:
     name: Update version and publish
 
     # Only run this job if initiator is not the Homey Github Actions Bot to prevent loops and if a version bump is provided
-    if: github.actor != 'HomeyGithubActionsBot' && (github.event.inputs.versionBumpType == 'patch' || github.event.inputs.versionBumpType == 'minor' || github.event.inputs.versionBumpType == 'major' || contains(github.event.head_commit.message, '#patch') || contains(github.event.head_commit.message, '#minor') || contains(github.event.head_commit.message, '#major'))
+    if: github.actor != 'homey-bot' && (github.event.inputs.versionBumpType == 'patch' || github.event.inputs.versionBumpType == 'minor' || github.event.inputs.versionBumpType == 'major' || contains(github.event.head_commit.message, '#patch') || contains(github.event.head_commit.message, '#minor') || contains(github.event.head_commit.message, '#major'))
 
     runs-on: ubuntu-latest
     steps:

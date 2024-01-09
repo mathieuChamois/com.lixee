@@ -14,6 +14,8 @@
     "rms_current_capability",
     "rms_voltage_capability",
     "maximal_intensity_capability",
+    "phase_2_apparent_power_capability",
+    "phase_3_apparent_power_capability",
     "clock_full_hour_empty_hour_capability"
   ],
   "images": {

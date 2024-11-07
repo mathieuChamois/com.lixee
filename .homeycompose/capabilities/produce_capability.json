@@ -1,0 +1,13 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "Producer",
+    "fr": "Producteur"
+  },
+  "getable": true,
+  "setable": true,
+  "insights": true,
+  "uiComponent": "sensor",
+  "uiQuickAction": false,
+  "icon": "/assets/sun.svg"
+}

@@ -56,6 +56,18 @@ declare class Homey extends SimpleClass {
      */
     manifest: any;
     /**
+     * The platform of the Homey that is running this app
+     * Note: on older software versions this might be undefined. In such case, assume it equals local.
+     * @type {'local'|'cloud'}
+     */
+    platform?: 'local'|'cloud';
+    /**
+     * The platform version of the Homey that is running this app
+     * Note: on older software versions this might be undefined. In such case, assume it equals 1.
+     * @type {int}
+     */
+    platformVersion?: int;
+    /**
      * A pointer to the App's instance.
      * @type {App}
      */

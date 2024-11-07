@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.lixee",
-  "version": "0.0.8",
+  "version": "0.1.3",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "platforms": [
@@ -100,6 +100,8 @@
         "rms_current_capability",
         "rms_voltage_capability",
         "maximal_intensity_capability",
+        "phase_2_apparent_power_capability",
+        "phase_3_apparent_power_capability",
         "clock_full_hour_empty_hour_capability"
       ],
       "images": {
@@ -229,6 +231,19 @@
       "insights": false,
       "icon": "/assets/clock.svg"
     },
+    "debug_capability": {
+      "type": "string",
+      "title": {
+        "en": "Debug",
+        "fr": "Debug"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "step": 0.5,
+      "insights": false,
+      "icon": "/assets/zap.svg"
+    },
     "maximal_intensity_capability": {
       "type": "number",
       "title": {
@@ -244,6 +259,93 @@
       "step": 0.5,
       "insights": true,
       "icon": "/assets/current-ac.svg"
+    },
+    "mode_capability": {
+      "type": "string",
+      "title": {
+        "en": "Mode",
+        "fr": "Mode"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "step": 0.5,
+      "insights": false,
+      "icon": "/assets/zap.svg"
+    },
+    "phase_1_apparent_power_capability": {
+      "type": "number",
+      "title": {
+        "en": "Phase 1"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kw"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/zap.svg"
+    },
+    "phase_2_apparent_power_capability": {
+      "type": "number",
+      "title": {
+        "en": "Phase 2"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kw"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/zap.svg"
+    },
+    "phase_3_apparent_power_capability": {
+      "type": "number",
+      "title": {
+        "en": "Phase 3"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kw"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/zap.svg"
+    },
+    "phase_capability": {
+      "type": "enum",
+      "title": {
+        "en": "Phase",
+        "fr": "Phase"
+      },
+      "values": [
+        {
+          "id": "monophase",
+          "title": {
+            "en": "Single Phase",
+            "fr": "Monophasé"
+          }
+        },
+        {
+          "id": "triphase",
+          "title": {
+            "en": "Triple phase",
+            "fr": "Triphasé"
+          }
+        }
+      ],
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "step": 0.5,
+      "insights": false,
+      "icon": "/assets/zap.svg"
     },
     "power_factor_capability": {
       "type": "number",
@@ -276,59 +378,31 @@
           }
         },
         {
-          "id": "HC",
+          "id": "HC..",
           "title": {
             "en": "Empty Hour Option",
             "fr": "Option Heures Creuses"
           }
         },
         {
-          "id": "EJP",
+          "id": "EJP.",
           "title": {
             "en": "EJP Option",
             "fr": "Option EJP"
           }
         },
         {
-          "id": "HCJB",
+          "id": "BBR",
           "title": {
-            "en": "Full Hour Option blue day",
-            "fr": "Heures Creuses Jours Bleus"
+            "en": "Tempo Option",
+            "fr": "Option Tempo"
           }
         },
         {
-          "id": "HPJB",
+          "id": "UNKN",
           "title": {
-            "en": "Full Hour Option blue day",
-            "fr": "Heures Creuses Jours Bleus"
-          }
-        },
-        {
-          "id": "HCJW",
-          "title": {
-            "en": "Full Hour Option blue day",
-            "fr": "Heures Creuses Jours Blancs"
-          }
-        },
-        {
-          "id": "HPJW",
-          "title": {
-            "en": "Full Hour Option blue day",
-            "fr": "Heures Pleines Jours Blancs"
-          }
-        },
-        {
-          "id": "HCJR",
-          "title": {
-            "en": "Full Hour Option blue day",
-            "fr": "Heures Creuses Jours Rouges"
-          }
-        },
-        {
-          "id": "HPJR",
-          "title": {
-            "en": "Full Hour Option blue day",
-            "fr": "Heures Pleines Jours Rouges"
+            "en": "Unknown",
+            "fr": "Inconnu"
           }
         }
       ],
@@ -380,6 +454,55 @@
             "en": "Mobil point hours",
             "fr": "Heures de Pointe Mobile"
           }
+        },
+        {
+          "id": "HCJB",
+          "title": {
+            "en": "Empty Hours Blue Days",
+            "fr": "Heures Creuses Jours Bleus"
+          }
+        },
+        {
+          "id": "HCJW",
+          "title": {
+            "en": "Empty Hours White Days",
+            "fr": "Heures Creuses Jours Blancs"
+          }
+        },
+        {
+          "id": "HCJR",
+          "title": {
+            "en": "Empty Hours Red Days",
+            "fr": "Heures Creuses Jours Rouges"
+          }
+        },
+        {
+          "id": "HPJB",
+          "title": {
+            "en": "Full Hours Blue Days",
+            "fr": "Heures Pleines Jours Bleus"
+          }
+        },
+        {
+          "id": "HPJW",
+          "title": {
+            "en": "Full Hours White Days",
+            "fr": "Heures Pleines Jours Blancs"
+          }
+        },
+        {
+          "id": "HPJR",
+          "title": {
+            "en": "Full Hours Red Days",
+            "fr": "Heures Pleines Jours Rouges"
+          }
+        },
+        {
+          "id": "UNKN",
+          "title": {
+            "en": "Unknown",
+            "fr": "Inconnu"
+          }
         }
       ],
       "uiComponent": "sensor",
@@ -388,6 +511,19 @@
       "step": 0.5,
       "insights": false,
       "icon": "/assets/clock.svg"
+    },
+    "produce_capability": {
+      "type": "boolean",
+      "title": {
+        "en": "Producer",
+        "fr": "Producteur"
+      },
+      "getable": true,
+      "setable": true,
+      "insights": true,
+      "uiComponent": "sensor",
+      "uiQuickAction": false,
+      "icon": "/assets/sun.svg"
     },
     "rms_current_capability": {
       "type": "number",

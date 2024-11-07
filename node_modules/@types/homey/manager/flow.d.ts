@@ -32,12 +32,21 @@ declare class ManagerFlow extends Manager {
      * @param {object} opts
      * @param {string} opts.type - Type of the token, can be either `string`, `number`, `boolean` or `image`.
      * @param {string} opts.title - Title of the token
+     * @param {*} opts.value - Initial value of the token
      * @returns {Promise<FlowToken>}
      */
     createToken(id: string, opts: {
         type: string;
         title: string;
+        value: any,
     }): Promise<FlowToken>;
+
+    /**
+    * @param {string} id The ID of the token, as provided in `createToken`.
+    * @returns {FlowToken}
+    */
+    getToken(id: string): FlowToken
+
     /**
      * Unregister a {@link FlowToken}.
      * @param {FlowToken} tokenInstance

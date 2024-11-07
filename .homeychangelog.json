@@ -22,5 +22,29 @@
   },
   "0.0.8": {
     "en": "add flow card for alarm power subscribe reach"
+  },
+  "0.0.9": {
+    "en": "add metrics for specific user with HP HC linky"
+  },
+  "0.0.10": {
+    "en": "add new value in price period enum"
+  },
+  "0.0.11": {
+    "en": "Improve price period and price option enum"
+  },
+  "0.0.12": {
+    "en": "add some informations phases, mode, is_producer and more plus calculate all phases for apparent power"
+  },
+  "0.1.0": {
+    "en": "change way to init phases"
+  },
+  "0.1.1": {
+    "en": "improve price option and phases meter power"
+  },
+  "0.1.2": {
+    "en": "debug price option and try to calculate phase correctly"
+  },
+  "0.1.3": {
+    "en": "get price option before set default"
   }
 }

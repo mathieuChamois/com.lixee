@@ -13,59 +13,31 @@
       }
     },
     {
-      "id": "HC",
+      "id": "HC..",
       "title": {
         "en": "Empty Hour Option",
         "fr": "Option Heures Creuses"
       }
     },
     {
-      "id": "EJP",
+      "id": "EJP.",
       "title": {
         "en": "EJP Option",
         "fr": "Option EJP"
       }
     },
     {
-      "id": "HCJB",
+      "id": "BBR",
       "title": {
-        "en": "Full Hour Option blue day",
-        "fr": "Heures Creuses Jours Bleus"
+        "en": "Tempo Option",
+        "fr": "Option Tempo"
       }
     },
     {
-      "id": "HPJB",
+      "id": "UNKN",
       "title": {
-        "en": "Full Hour Option blue day",
-        "fr": "Heures Creuses Jours Bleus"
-      }
-    },
-    {
-      "id": "HCJW",
-      "title": {
-        "en": "Full Hour Option blue day",
-        "fr": "Heures Creuses Jours Blancs"
-      }
-    },
-    {
-      "id": "HPJW",
-      "title": {
-        "en": "Full Hour Option blue day",
-        "fr": "Heures Pleines Jours Blancs"
-      }
-    },
-    {
-      "id": "HCJR",
-      "title": {
-        "en": "Full Hour Option blue day",
-        "fr": "Heures Creuses Jours Rouges"
-      }
-    },
-    {
-      "id": "HPJR",
-      "title": {
-        "en": "Full Hour Option blue day",
-        "fr": "Heures Pleines Jours Rouges"
+        "en": "Unknown",
+        "fr": "Inconnu"
       }
     }
   ],

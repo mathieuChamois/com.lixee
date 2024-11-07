@@ -1,59 +1,58 @@
 type ToBuffer = (buffer: Buffer, value: unknown, index: number) => Buffer;
 type FromBuffer = (buffer: Buffer, index: number, returnLength: boolean) => unknown;
 
-interface DataTypeInterface {
-  id: number;
-  shortName: string;
-  length: number;
-  toBuffer: ToBuffer;
-  fromBuffer: FromBuffer;
-  args: unknown[];
-  defaultValue: unknown;
-
-  isAnalog: () => boolean;
-  inspect: () => string;
-}
-
-interface DataTypeConstructor {
-  new (
-    id: number,
-    shortName: string,
-    length: number,
-    toBuf: ToBuffer,
-    fromBuf: FromBuffer,
-    ...args: unknown[]
-  ): DataTypeInterface;
-}
-
-interface DataTypeFunctionConstructor {
-  (...args: unknown[]): DataTypeConstructor;
-}
-
-type DataTypeItem =
-  | DataTypeConstructor
-  | DataTypeFunctionConstructor
-  | { [name: string]: DataTypeItem }; // This OR is needed for Structs with a second level of DataTypes
-
-type GenericMap<T> = {
-  [K in keyof T]: DataTypeItem;
-};
-
-interface StructTypeInterface<T> {
-  toJSON: () => T;
-  toBuffer: (buffer?: Buffer, index?: number) => Buffer;
-}
-
-interface StructInstance<StructType> {
-  fromBuffer: (buffer: Buffer) => StructType & StructTypeInterface<StructType>;
-  toBuffer: (buffer: Buffer, object: StructType, index?: number) => Buffer;
-  fields: GenericMap<StructType>;
-  name: string;
-  length: number;
-  fromJSON: (object: StructType) => StructType & StructTypeInterface<StructType>;
-  fromArgs: (...args: unknown[]) => StructType & StructTypeInterface<StructType>;
-}
-
-declare module "@athombv/data-types" {
+declare module "@athombv/data-types" {  
+  interface DataTypeInterface {
+    id: number;
+    shortName: string;
+    length: number;
+    toBuffer: ToBuffer;
+    fromBuffer: FromBuffer;
+    args: unknown[];
+    defaultValue: unknown;
+  
+    isAnalog: () => boolean;
+    inspect: () => string;
+  }
+  
+  interface DataTypeConstructor {
+    new (
+      id: number,
+      shortName: string,
+      length: number,
+      toBuf: ToBuffer,
+      fromBuf: FromBuffer,
+      ...args: unknown[]
+    ): DataTypeInterface;
+  }
+  
+  interface DataTypeFunctionConstructor {
+    (...args: unknown[]): DataTypeConstructor;
+  }
+  
+  type DataTypeItem =
+    | DataTypeConstructor
+    | DataTypeFunctionConstructor
+    | { [name: string]: DataTypeItem }; // This OR is needed for Structs with a second level of DataTypes
+  
+  type GenericMap<T> = {
+    [K in keyof T]: DataTypeItem;
+  };
+  
+  interface StructTypeInterface<T> {
+    toJSON: () => T;
+    toBuffer: (buffer?: Buffer, index?: number) => Buffer;
+  }
+  
+  export interface StructInstance<StructType> {
+    fromBuffer: (buffer: Buffer) => StructType & StructTypeInterface<StructType>;
+    toBuffer: (buffer: Buffer, object: StructType, index?: number) => Buffer;
+    fields: GenericMap<StructType>;
+    name: string;
+    length: number;
+    fromJSON: (object: StructType) => StructType & StructTypeInterface<StructType>;
+    fromArgs: (...args: unknown[]) => StructType & StructTypeInterface<StructType>;
+  }
   export const DataTypes: {
     noData: DataTypeConstructor;
     data8: DataTypeConstructor;

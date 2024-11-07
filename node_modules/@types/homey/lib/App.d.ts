@@ -38,6 +38,10 @@ declare class App extends SimpleClass {
      * This method is called upon initialization of your app.
      */
     onInit(): Promise<void>;
+    /**
+     * This method is called when your app is destroyed.
+     */
+    onUninit(): Promise<void>;
 }
 import SimpleClass = require("./SimpleClass.js");
 type Homey = import('./Homey');

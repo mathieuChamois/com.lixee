@@ -7,6 +7,7 @@ export = Homey;
  * @typedef {import('../manager/ble')} ManagerBLE
  * @typedef {import('../manager/cloud')} ManagerCloud
  * @typedef {import('../manager/clock')} ManagerClock
+ * @typedef {import('../manager/dashboards')} ManagerDashboards
  * @typedef {import('../manager/drivers')} ManagerDrivers
  * @typedef {import('../manager/discovery')} ManagerDiscovery
  * @typedef {import('../manager/flow')} ManagerFlow
@@ -84,6 +85,8 @@ declare class Homey extends SimpleClass {
     cloud: ManagerCloud;
     /** @type {ManagerClock} */
     clock: ManagerClock;
+    /** @type {ManagerDashboards} */
+    dashboards: ManagerDashboards;
     /** @type {ManagerDrivers} */
     drivers: ManagerDrivers;
     /** @type {ManagerDiscovery} */
@@ -177,6 +180,7 @@ type ManagerAudio = import('../manager/audio');
 type ManagerBLE = import('../manager/ble');
 type ManagerCloud = import('../manager/cloud');
 type ManagerClock = import('../manager/clock');
+type ManagerDashboards = import('../manager/dashboards');
 type ManagerDrivers = import('../manager/drivers');
 type ManagerDiscovery = import('../manager/discovery');
 type ManagerFlow = import('../manager/flow');

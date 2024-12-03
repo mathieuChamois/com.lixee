@@ -58,15 +58,15 @@ declare class Homey extends SimpleClass {
     /**
      * The platform of the Homey that is running this app
      * Note: on older software versions this might be undefined. In such case, assume it equals local.
-     * @type {'local'|'cloud'}
+     * @type {'cloud' | 'local'}
      */
-    platform?: 'local'|'cloud';
+    platform?: 'cloud' | 'local';
     /**
      * The platform version of the Homey that is running this app
      * Note: on older software versions this might be undefined. In such case, assume it equals 1.
      * @type {int}
      */
-    platformVersion?: int;
+    platformVersion?: number;
     /**
      * A pointer to the App's instance.
      * @type {App}

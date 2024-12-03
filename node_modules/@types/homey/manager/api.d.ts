@@ -48,9 +48,9 @@ declare class ManagerApi extends Manager {
     /**
      * Create an {@link ApiApp} instance, to receive realtime events.
      * @param {string} appId The ID of the App, e.g. `com.athom.foo`
-     * @returns {Api}
+     * @returns {ApiApp}
      */
-    getApiApp(appId: string): Api;
+    getApiApp(appId: string): ApiApp;
     hasApiApp(appId: any): boolean;
     /**
      * Unregister an {@link Api} instance.
@@ -79,3 +79,4 @@ declare class ManagerApi extends Manager {
 }
 import Manager = require("../lib/Manager.js");
 import Api = require("../lib/Api.js");
+import ApiApp = require("../lib/ApiApp.js");

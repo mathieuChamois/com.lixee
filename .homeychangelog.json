@@ -52,5 +52,8 @@
   },
   "0.1.5": {
     "en": "update homey core library"
+  },
+  "1.0.0": {
+    "en": "test version become prod version"
   }
 }

@@ -3,14 +3,25 @@ const {
   debug,
   CLUSTER
 } = require('zigbee-clusters');
+const { Log } = require('homey-log');
 
 var currentMode;
+
+const Homey = require('homey');
+
+var message;
+var state;
 
 class Device extends ZigBeeDevice {
   async onNodeInit({ zclNode }) {
     this.enableDebug();
     debug(true);
     this.printNode();
+
+    const state = this.getState();
+
+    this.log('ETAT --------------------');
+    this.log(state);
 
     await this.getMode(zclNode)
       .then(
@@ -202,6 +213,12 @@ class Device extends ZigBeeDevice {
                   }, 10000);
                 }
               )
+              .then(
+                async () => {
+                  this.homeyLog = new Log({ homey: this.homey });
+                  this.homeyLog.setTags(state);
+                  this.homeyLog.captureMessage(state.mode_capability);
+                })
           )
       );
   }
@@ -284,14 +301,16 @@ class Device extends ZigBeeDevice {
       .catch(this.error);
 
     await this.addCapability('mode_capability')
-      .catch(this.error).then(() => {
+      .catch(this.error)
+      .then(() => {
           if (explodedMode[0] !== undefined) {
             this.setCapabilityValue('mode_capability', explodedMode[0]);
           }
         }
       );
     await this.addCapability('phase_capability')
-      .catch(this.error).then(() => {
+      .catch(this.error)
+      .then(() => {
           if (explodedMode[1] !== undefined) {
             this.setCapabilityValue('phase_capability', explodedMode[1]);
           }
@@ -308,7 +327,8 @@ class Device extends ZigBeeDevice {
       );
 
     await this.addCapability('produce_capability')
-      .catch(this.error).then(() => {
+      .catch(this.error)
+      .then(() => {
           this.setCapabilityValue('produce_capability', false);
           if (explodedMode[2] !== undefined) {
             this.setCapabilityValue('produce_capability', true);

@@ -13,6 +13,7 @@
     "eslint-config-athom": "^3.1.1"
   },
   "dependencies": {
+    "homey-log": "^2.1.0",
     "homey-zigbeedriver": "^1.6.12"
   }
 }

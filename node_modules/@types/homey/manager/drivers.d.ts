@@ -21,5 +21,4 @@ declare class ManagerDrivers extends Manager {
     };
 }
 import Manager = require("../lib/Manager.js");
-import PairSession = require("../lib/PairSession.js");
 import Driver = require("../lib/Driver.js");

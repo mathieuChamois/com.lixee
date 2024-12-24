@@ -51,13 +51,11 @@ class Device extends ZigBeeDevice {
                   setInterval(async () => {
                     try {
                       let {
-                        priceOption,
-                        priceOptionStd
+                        priceOption
                       } = await zclNode.endpoints[this.getClusterEndpoint(CLUSTER.LIXEE_PRIVATE)]
                         .clusters[CLUSTER.LIXEE_PRIVATE.NAME]
                         .readAttributes(
-                          'priceOption',
-                          'priceOptionStd'
+                          'priceOption'
                         );
 
                       const {
@@ -84,7 +82,7 @@ class Device extends ZigBeeDevice {
                           'clockFullHourEmptyHour'
                         );
 
-                      await this.setCapabilityValue('debug_capability', priceOptionStd);
+                      await this.setCapabilityValue('debug_capability', priceOption);
 
                       if (['BASE', 'HC..','EJP.', 'BBR'].includes(priceOption) === false) {
                         priceOption = 'BBR';

@@ -58,5 +58,8 @@
   },
   "1.1.0": {
     "en": "add sentry for debug"
+  },
+  "1.1.1": {
+    "en": "just add .env"
   }
 }

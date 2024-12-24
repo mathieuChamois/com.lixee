@@ -55,5 +55,8 @@
   },
   "1.0.0": {
     "en": "test version become prod version"
+  },
+  "1.1.0": {
+    "en": "add sentry for debug"
   }
 }

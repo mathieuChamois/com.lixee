@@ -67,5 +67,8 @@
   },
   "1.1.3": {
     "en": "phase 2 and phase 3 not showing in debug"
+  },
+  "1.1.4": {
+    "en": "send log only when all data are refresh"
   }
 }

@@ -84,13 +84,13 @@ class Device extends ZigBeeDevice {
 
                       await this.setCapabilityValue('debug_capability', priceOption);
 
-                      if (['BASE', 'HC..','EJP.', 'BBR'].includes(priceOption) === false) {
+                      if (['BASE', 'HC..','EJP.', 'BBR'].includes(priceOption) == false) {
                         priceOption = 'BBR';
                       }
 
                       await this.setCapabilityValue('price_option_capability', priceOption);
                       await this.setCapabilityValue('clock_full_hour_empty_hour_capability', clockFullHourEmptyHour);
-                      await this.setCapabilityValue('tomorrow_color_capability', tomorrowColor === "" ? "----" : tomorrowColor);
+                      await this.setCapabilityValue('tomorrow_color_capability', tomorrowColor == "" ? "----" : tomorrowColor);
                       await this.setCapabilityValue('alarm_subscribe_power_capability', subscribePowerAlert !== 0);
 
                       this.log(`Cluster lixee private return response correctly`);
@@ -123,28 +123,28 @@ class Device extends ZigBeeDevice {
                           'phase3ApparentPower',
                         );
 
-                      if (phase2ApparentPower === undefined) {
+                      if (phase2ApparentPower == undefined || phase2ApparentPower == 65535) {
                         phase2ApparentPower = 0;
                       }
 
-                      if (phase3ApparentPower === undefined) {
+                      if (phase3ApparentPower == undefined || phase3ApparentPower == 65535) {
                         phase3ApparentPower = 0;
                       }
 
-                      if (this.getCapabilityValue('phase_capability') === 'triphase') {
-                        if (this.hasCapability('phase_1_apparent_power_capability') === true) {
+                      if (this.getCapabilityValue('phase_capability') == 'triphase') {
+                        if (this.hasCapability('phase_1_apparent_power_capability') == true) {
                           await this.setCapabilityValue('phase_1_apparent_power_capability', apparentPower);
                         }
 
-                        if (this.hasCapability('phase_2_apparent_power_capability') === true) {
+                        if (this.hasCapability('phase_2_apparent_power_capability') == true) {
                           await this.setCapabilityValue('phase_2_apparent_power_capability', phase2ApparentPower);
                         }
 
-                        if (this.hasCapability('phase_3_apparent_power_capability') === true) {
+                        if (this.hasCapability('phase_3_apparent_power_capability') == true) {
                           await this.setCapabilityValue('phase_3_apparent_power_capability', phase3ApparentPower);
                         }
 
-                        await this.setCapabilityValue('measure_power', apparentPower + phase2ApparentPower + phase3ApparentPower);
+                        await this.setCapabilityValue('measure_power', parseInt(apparentPower) + parseInt(phase2ApparentPower) + parseInt(phase3ApparentPower));
                       } else {
                         await this.setCapabilityValue('measure_power', apparentPower);
                       }
@@ -181,7 +181,7 @@ class Device extends ZigBeeDevice {
                       await this.setCapabilityValue('serial_number_capability', serialNumber);
 
 
-                      if (['TH..', 'HC..','HP..', 'HN..', 'PM..', 'HCJB', 'HCJW', 'HCJR', 'HPJB', 'HPJW', 'HPJR'].includes(pricePeriod) === false) {
+                      if (['TH..', 'HC..','HP..', 'HN..', 'PM..', 'HCJB', 'HCJW', 'HCJR', 'HPJB', 'HPJW', 'HPJR'].includes(pricePeriod) == false) {
                         pricePeriod = 'UNKN';
                       }
 
@@ -313,7 +313,7 @@ class Device extends ZigBeeDevice {
             this.setCapabilityValue('phase_capability', explodedMode[1]);
           }
 
-          if (explodedMode[1] === 'triphase') {
+          if (explodedMode[1] == 'triphase') {
             this.addCapability('phase_1_apparent_power_capability')
               .catch(this.error);
             this.addCapability('phase_2_apparent_power_capability')

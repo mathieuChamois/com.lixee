@@ -70,5 +70,8 @@
   },
   "1.1.4": {
     "en": "send log only when all data are refresh"
+  },
+  "1.1.5": {
+    "en": "debug triphase"
   }
 }

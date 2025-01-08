@@ -127,19 +127,10 @@ class Device extends ZigBeeDevice {
                       }
 
                       if (this.getCapabilityValue('phase_capability') == 'triphase') {
-                        if (this.hasCapability('phase_1_apparent_power_capability') == true) {
-                          await this.setCapabilityValue('phase_1_apparent_power_capability', apparentPower);
-                        }
-
-                        if (this.hasCapability('phase_2_apparent_power_capability') == true) {
-                          await this.setCapabilityValue('phase_2_apparent_power_capability', phase2ApparentPower);
-                        }
-
-                        if (this.hasCapability('phase_3_apparent_power_capability') == true) {
-                          await this.setCapabilityValue('phase_3_apparent_power_capability', phase3ApparentPower);
-                        }
-
-                        await this.setCapabilityValue('measure_power', parseInt(apparentPower) + parseInt(phase2ApparentPower) + parseInt(phase3ApparentPower));
+                        await this.setCapabilityValue('phase_1_apparent_power_capability', apparentPower);
+                        await this.setCapabilityValue('phase_2_apparent_power_capability', phase2ApparentPower ?? 0);
+                        await this.setCapabilityValue('phase_3_apparent_power_capability', phase3ApparentPower ?? 0);
+                        await this.setCapabilityValue('measure_power', parseInt(apparentPower) + parseInt(phase2ApparentPower ?? 0) + parseInt(phase3ApparentPower ?? 0));
                       } else {
                         await this.setCapabilityValue('measure_power', apparentPower);
                       }

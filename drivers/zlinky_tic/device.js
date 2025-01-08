@@ -79,13 +79,13 @@ class Device extends ZigBeeDevice {
 
                       await this.setCapabilityValue('debug_capability', priceOption);
 
-                      if (['BASE', 'HC..','EJP.', 'BBR'].includes(priceOption) == false) {
+                      if (['BASE', 'HC..', 'EJP.', 'BBR'].includes(priceOption) == false) {
                         priceOption = 'BBR';
                       }
 
                       await this.setCapabilityValue('price_option_capability', priceOption);
                       await this.setCapabilityValue('clock_full_hour_empty_hour_capability', clockFullHourEmptyHour);
-                      await this.setCapabilityValue('tomorrow_color_capability', tomorrowColor == "" ? "----" : tomorrowColor);
+                      await this.setCapabilityValue('tomorrow_color_capability', tomorrowColor == '' ? '----' : tomorrowColor);
                       await this.setCapabilityValue('alarm_subscribe_power_capability', subscribePowerAlert !== 0);
 
                       this.log(`Cluster lixee private return response correctly`);
@@ -166,8 +166,7 @@ class Device extends ZigBeeDevice {
 
                       await this.setCapabilityValue('serial_number_capability', serialNumber);
 
-
-                      if (['TH..', 'HC..','HP..', 'HN..', 'PM..', 'HCJB', 'HCJW', 'HCJR', 'HPJB', 'HPJW', 'HPJR'].includes(pricePeriod) == false) {
+                      if (['TH..', 'HC..', 'HP..', 'HN..', 'PM..', 'HCJB', 'HCJW', 'HCJR', 'HPJB', 'HPJW', 'HPJR'].includes(pricePeriod) == false) {
                         pricePeriod = 'UNKN';
                       }
 
@@ -274,56 +273,80 @@ class Device extends ZigBeeDevice {
   async prepareMode() {
     let explodedMode = currentMode.mode.split('_');
 
-    await this.removeCapability('phase_1_apparent_power_capability')
-      .catch(this.error);
-    await this.removeCapability('phase_2_apparent_power_capability')
-      .catch(this.error);
-    await this.removeCapability('phase_3_apparent_power_capability')
-      .catch(this.error);
-    await this.removeCapability('mode_capability')
-      .catch(this.error);
     await this.removeCapability('phase_capability')
-      .catch(this.error);
-    await this.removeCapability('produce_capability')
-      .catch(this.error);
-
-    await this.addCapability('mode_capability')
       .catch(this.error)
       .then(() => {
-          if (explodedMode[0] !== undefined) {
-            this.setCapabilityValue('mode_capability', explodedMode[0]);
-          }
+          this.addCapability('phase_capability')
+            .catch(this.error)
+            .then(() => {
+                if (explodedMode[1] !== undefined) {
+                  this.setCapabilityValue('phase_capability', explodedMode[1]);
+                }
+              }
+            );
         }
       );
+
+    await this.removeCapability('phase_1_apparent_power_capability')
+      .catch(this.error)
+      .then(() => {
+          this.addCapability('phase_1_apparent_power_capability')
+            .catch(this.error);
+        }
+      );
+
+    await this.removeCapability('phase_2_apparent_power_capability')
+      .catch(this.error)
+      .then(() => {
+          this.addCapability('phase_2_apparent_power_capability')
+            .catch(this.error);
+        }
+      );
+    await this.removeCapability('phase_3_apparent_power_capability')
+      .catch(this.error)
+      .then(() => {
+          this.addCapability('phase_3_apparent_power_capability')
+            .catch(this.error);
+        }
+      );
+
+    await this.removeCapability('mode_capability')
+      .catch(this.error)
+      .then(() => {
+          this.addCapability('mode_capability')
+            .catch(this.error)
+            .then(() => {
+                if (explodedMode[0] !== undefined) {
+                  this.setCapabilityValue('mode_capability', explodedMode[0]);
+                }
+              }
+            );
+        }
+      );
+
+    await this.removeCapability('produce_capability')
+      .catch(this.error)
+      .then(() => {
+          this.addCapability('produce_capability')
+            .catch(this.error)
+            .then(() => {
+                this.setCapabilityValue('produce_capability', false);
+                if (explodedMode[2] !== undefined) {
+                  this.setCapabilityValue('produce_capability', true);
+                }
+              }
+            );
+        }
+      );
+
     await this.addCapability('phase_capability')
       .catch(this.error)
       .then(() => {
           if (explodedMode[1] !== undefined) {
             this.setCapabilityValue('phase_capability', explodedMode[1]);
           }
-
-          if (explodedMode[1] == 'triphase') {
-            this.addCapability('phase_1_apparent_power_capability')
-              .catch(this.error);
-            this.addCapability('phase_2_apparent_power_capability')
-              .catch(this.error);
-            this.addCapability('phase_3_apparent_power_capability')
-              .catch(this.error);
-          }
         }
       );
-
-    await this.addCapability('produce_capability')
-      .catch(this.error)
-      .then(() => {
-          this.setCapabilityValue('produce_capability', false);
-          if (explodedMode[2] !== undefined) {
-            this.setCapabilityValue('produce_capability', true);
-          }
-        }
-      );
-
-
   }
 }
 

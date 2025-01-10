@@ -141,6 +141,11 @@ class Device extends ZigBeeDevice {
                       await this.setCapabilityValue('maximal_intensity_capability', maximalIntensity);
 
                       this.log(`Cluster electrical measurement return response correctly`);
+
+                        this.homeyLog = new Log({ homey: this.homey });
+                        this.homeyLog.setTags(this.getState());
+                        this.homeyLog.captureMessage(this.getState().mode_capability);
+                      
                     } catch (e) {
                       this.log(`Something wrong with zigbee cluster and message : ${e.message}, app will retry later `);
                     }
@@ -194,15 +199,6 @@ class Device extends ZigBeeDevice {
                       this.log(`Something wrong with zigbee cluster and message : ${e.message}, app will retry later `);
                     }
                   }, 10000);
-
-                  setTimeout(() => {
-                    this.log('ETAT --------------------');
-                    this.log(this.getState());
-
-                    this.homeyLog = new Log({ homey: this.homey });
-                    this.homeyLog.setTags(this.getState());
-                    this.homeyLog.captureMessage(this.getState().mode_capability);
-                  }, 30000);
                 }
               )
           )

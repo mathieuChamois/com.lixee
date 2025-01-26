@@ -6,6 +6,7 @@ const {
 const { Log } = require('homey-log');
 
 var currentMode;
+var lastLogDate;
 
 const Homey = require('homey');
 
@@ -142,10 +143,14 @@ class Device extends ZigBeeDevice {
 
                       this.log(`Cluster electrical measurement return response correctly`);
 
-                        this.homeyLog = new Log({ homey: this.homey });
-                        this.homeyLog.setTags(this.getState());
+                      this.homeyLog = new Log({ homey: this.homey });
+                      this.homeyLog.setTags(this.getState());
+                      const today = new Date().toISOString().split('T')[0];
+                      if (lastLogDate !== today) {
                         this.homeyLog.captureMessage(this.getState().mode_capability);
-                      
+                        lastLogDate = today;
+                      }
+
                     } catch (e) {
                       this.log(`Something wrong with zigbee cluster and message : ${e.message}, app will retry later `);
                     }
@@ -332,15 +337,6 @@ class Device extends ZigBeeDevice {
                 }
               }
             );
-        }
-      );
-
-    await this.addCapability('phase_capability')
-      .catch(this.error)
-      .then(() => {
-          if (explodedMode[1] !== undefined) {
-            this.setCapabilityValue('phase_capability', explodedMode[1]);
-          }
         }
       );
   }

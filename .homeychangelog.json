@@ -79,5 +79,8 @@
   },
   "1.1.7": {
     "en": "log every minute for better debug"
+  },
+  "1.1.8": {
+    "en": "limit rate on send log"
   }
 }

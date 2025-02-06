@@ -82,5 +82,8 @@
   },
   "1.1.8": {
     "en": "limit rate on send log"
+  },
+  "1.1.9": {
+    "en": "update lib and catch sentry error"
   }
 }

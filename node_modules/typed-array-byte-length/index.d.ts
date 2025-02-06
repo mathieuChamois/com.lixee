@@ -1,7 +1,7 @@
 import type { TypedArray } from 'is-typed-array';
 
 declare namespace typedArrayByteLength {
-	export { TypedArray };
+	export type { TypedArray };
 }
 
 declare function typedArrayByteLength(value: TypedArray): number;

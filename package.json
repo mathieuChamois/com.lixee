@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "homey-log": "^2.1.0",
-    "homey-zigbeedriver": "^1.6.12"
+    "homey-zigbeedriver": "^1.6.12",
+    "node-fetch": "^3.3.2"
   }
 }

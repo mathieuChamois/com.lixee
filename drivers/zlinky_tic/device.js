@@ -143,12 +143,17 @@ class Device extends ZigBeeDevice {
 
                       this.log(`Cluster electrical measurement return response correctly`);
 
-                      this.homeyLog = new Log({ homey: this.homey });
-                      this.homeyLog.setTags(this.getState());
-                      const today = new Date().toISOString().split('T')[0];
-                      if (lastLogDate !== today) {
-                        this.homeyLog.captureMessage(this.getState().mode_capability);
-                        lastLogDate = today;
+                      try {
+                        this.homeyLog = new Log({ homey: this.homey });
+                        this.homeyLog.setTags(this.getState());
+                        const today = new Date().toISOString()
+                          .split('T')[0];
+                        if (lastLogDate !== today) {
+                          this.homeyLog.captureMessage(this.getState().mode_capability);
+                          lastLogDate = today;
+                        }
+                      } catch (e) {
+                        this.log(`Cannot send log to sentry`);
                       }
 
                     } catch (e) {

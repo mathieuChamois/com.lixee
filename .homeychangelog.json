@@ -85,5 +85,8 @@
   },
   "1.1.9": {
     "en": "update lib and catch sentry error"
+  },
+  "1.1.10": {
+    "en": "add async on init capabilities"
   }
 }

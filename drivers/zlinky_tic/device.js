@@ -21,9 +21,9 @@ class Device extends ZigBeeDevice {
 
     await this.getMode(zclNode)
       .then(
-        () => this.prepareMode()
+        async () => await this.prepareMode()
           .then(
-            () => this.prepareCapabilities()
+            async () => await this.prepareCapabilities()
               .then(
                 async () => {
                   setInterval(async () => {

@@ -97,5 +97,8 @@
   },
   "1.1.13": {
     "en": "remove phases for non triphase linky and disable sentry"
+  },
+  "1.1.14": {
+    "en": "use W instead of Kw for phases and debug color"
   }
 }

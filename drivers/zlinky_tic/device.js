@@ -283,11 +283,11 @@ class Device extends ZigBeeDevice {
     await this.removeCapability('phase_capability')
       .catch(this.error)
       .then(async () => {
-          this.addCapability('phase_capability')
+        await this.addCapability('phase_capability')
             .catch(this.error)
             .then(async () => {
                 if (explodedMode[1] !== undefined && this.hasCapability('phase_capability')) {
-                  this.setCapabilityValue('phase_capability', explodedMode[1]);
+                  await this.setCapabilityValue('phase_capability', explodedMode[1]);
                 }
               }
             );
@@ -297,7 +297,7 @@ class Device extends ZigBeeDevice {
     await this.removeCapability('phase_1_apparent_power_capability')
       .catch(this.error)
       .then(async () => {
-          this.addCapability('phase_1_apparent_power_capability')
+        await this.addCapability('phase_1_apparent_power_capability')
             .catch(this.error);
         }
       );
@@ -305,14 +305,14 @@ class Device extends ZigBeeDevice {
     await this.removeCapability('phase_2_apparent_power_capability')
       .catch(this.error)
       .then(async () => {
-          this.addCapability('phase_2_apparent_power_capability')
+        await this.addCapability('phase_2_apparent_power_capability')
             .catch(this.error);
         }
       );
     await this.removeCapability('phase_3_apparent_power_capability')
       .catch(this.error)
       .then(async () => {
-          this.addCapability('phase_3_apparent_power_capability')
+        await this.addCapability('phase_3_apparent_power_capability')
             .catch(this.error);
         }
       );
@@ -320,11 +320,11 @@ class Device extends ZigBeeDevice {
     await this.removeCapability('mode_capability')
       .catch(this.error)
       .then(async () => {
-          this.addCapability('mode_capability')
+        await this.addCapability('mode_capability')
             .catch(this.error)
             .then(async () => {
                 if (explodedMode[0] !== undefined && this.hasCapability('mode_capability')) {
-                  this.setCapabilityValue('mode_capability', explodedMode[0]);
+                  await this.setCapabilityValue('mode_capability', explodedMode[0]);
                 }
               }
             );
@@ -334,12 +334,12 @@ class Device extends ZigBeeDevice {
     await this.removeCapability('produce_capability')
       .catch(this.error)
       .then(async () => {
-          this.addCapability('produce_capability')
+          await this.addCapability('produce_capability')
             .catch(this.error)
             .then(async () => {
-                this.setCapabilityValue('produce_capability', false);
+                await this.setCapabilityValue('produce_capability', false);
                 if (explodedMode[2] !== undefined) {
-                  this.setCapabilityValue('produce_capability', true);
+                  await this.setCapabilityValue('produce_capability', true);
                 }
               }
             );

@@ -94,5 +94,8 @@
   },
   "1.1.12": {
     "en": "multiple fixes, and use patch-package by dfischer0"
+  },
+  "1.1.13": {
+    "en": "remove phases for non triphase linky and disable sentry"
   }
 }

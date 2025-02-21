@@ -4,7 +4,7 @@
   "uiComponent": "sensor",
   "getable": true,
   "setable": true,
-  "units": { "en": "kw" },
+  "units": { "en": "W" },
   "step": 0.5,
   "insights": true,
   "icon": "/assets/zap.svg"

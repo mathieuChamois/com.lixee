@@ -88,5 +88,11 @@
   },
   "1.1.10": {
     "en": "add async on init capabilities"
+  },
+  "1.1.11": {
+    "en": "multiple fixes, and use patch-package by dfischer0"
+  },
+  "1.1.12": {
+    "en": "multiple fixes, and use patch-package by dfischer0"
   }
 }

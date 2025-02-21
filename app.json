@@ -282,7 +282,7 @@
       "getable": true,
       "setable": true,
       "units": {
-        "en": "kw"
+        "en": "W"
       },
       "step": 0.5,
       "insights": true,
@@ -297,7 +297,7 @@
       "getable": true,
       "setable": true,
       "units": {
-        "en": "kw"
+        "en": "W"
       },
       "step": 0.5,
       "insights": true,
@@ -312,7 +312,7 @@
       "getable": true,
       "setable": true,
       "units": {
-        "en": "kw"
+        "en": "W"
       },
       "step": 0.5,
       "insights": true,

@@ -9,6 +9,7 @@ var currentMode;
 var lastLogDate;
 
 const Homey = require('homey');
+const HomeyModule = require('homey');
 
 var message;
 var state;
@@ -86,7 +87,7 @@ class Device extends ZigBeeDevice {
 
                       await this.setCapabilityValue('price_option_capability', priceOption);
                       await this.setCapabilityValue('clock_full_hour_empty_hour_capability', clockFullHourEmptyHour);
-                      await this.setCapabilityValue('tomorrow_color_capability', tomorrowColor == '' ? '----' : tomorrowColor);
+                      await this.setCapabilityValue('tomorrow_color_capability', tomorrowColor || '----');
                       await this.setCapabilityValue('alarm_subscribe_power_capability', subscribePowerAlert !== 0);
 
                       this.log(`Cluster lixee private return response correctly`);
@@ -144,14 +145,18 @@ class Device extends ZigBeeDevice {
                       this.log(`Cluster electrical measurement return response correctly`);
 
                       try {
-                        this.homeyLog = new Log({ homey: this.homey });
-                        this.homeyLog.setTags(this.getState());
-                        const today = new Date().toISOString()
-                          .split('T')[0];
-                        if (lastLogDate !== today) {
-                          let modeCapability = this.hasCapability('mode_capability') ? this.getCapabilityValue('mode_capability') : 'unknown';
-                          this.homeyLog.captureMessage(modeCapability);
-                          lastLogDate = today;
+                        if (HomeyModule.env.HOMEY_LOG_FORCE === 1) {
+                          this.homeyLog = new Log({ homey: this.homey });
+                          this.homeyLog.setTags(this.getState());
+                          const today = new Date().toISOString()
+                            .split('T')[0];
+                          if (lastLogDate !== today) {
+                            let modeCapability = this.hasCapability('mode_capability') ? this.getCapabilityValue('mode_capability') : 'unknown';
+                            this.homeyLog.captureMessage(modeCapability);
+                            lastLogDate = today;
+                          }
+                        } else {
+                          this.log(`Sentry log is disable`);
                         }
                       } catch (e) {
                         this.log(`Cannot send log to sentry`);
@@ -283,44 +288,51 @@ class Device extends ZigBeeDevice {
     await this.removeCapability('phase_capability')
       .catch(this.error)
       .then(async () => {
-        await this.addCapability('phase_capability')
+          await this.addCapability('phase_capability')
             .catch(this.error)
             .then(async () => {
                 if (explodedMode[1] !== undefined && this.hasCapability('phase_capability')) {
                   await this.setCapabilityValue('phase_capability', explodedMode[1]);
                 }
+
+                await this.removeCapability('phase_1_apparent_power_capability')
+                  .catch(this.error)
+                  .then(async () => {
+                      if (explodedMode[1] === 'triphase') {
+                        await this.addCapability('phase_1_apparent_power_capability')
+                          .catch(this.error);
+                      }
+                    }
+                  );
+
+                await this.removeCapability('phase_2_apparent_power_capability')
+                  .catch(this.error)
+                  .then(async () => {
+                      if (explodedMode[1] === 'triphase') {
+                        await this.addCapability('phase_2_apparent_power_capability')
+                          .catch(this.error);
+                      }
+                    }
+                  );
+                await this.removeCapability('phase_3_apparent_power_capability')
+                  .catch(this.error)
+                  .then(async () => {
+                      if (explodedMode[1] === 'triphase') {
+                        await this.addCapability('phase_3_apparent_power_capability')
+                          .catch(this.error);
+                      }
+                    }
+                  );
+
               }
             );
-        }
-      );
-
-    await this.removeCapability('phase_1_apparent_power_capability')
-      .catch(this.error)
-      .then(async () => {
-        await this.addCapability('phase_1_apparent_power_capability')
-            .catch(this.error);
-        }
-      );
-
-    await this.removeCapability('phase_2_apparent_power_capability')
-      .catch(this.error)
-      .then(async () => {
-        await this.addCapability('phase_2_apparent_power_capability')
-            .catch(this.error);
-        }
-      );
-    await this.removeCapability('phase_3_apparent_power_capability')
-      .catch(this.error)
-      .then(async () => {
-        await this.addCapability('phase_3_apparent_power_capability')
-            .catch(this.error);
         }
       );
 
     await this.removeCapability('mode_capability')
       .catch(this.error)
       .then(async () => {
-        await this.addCapability('mode_capability')
+          await this.addCapability('mode_capability')
             .catch(this.error)
             .then(async () => {
                 if (explodedMode[0] !== undefined && this.hasCapability('mode_capability')) {

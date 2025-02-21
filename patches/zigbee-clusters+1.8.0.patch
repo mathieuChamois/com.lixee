@@ -1,0 +1,189 @@
+diff --git a/node_modules/zigbee-clusters/lib/clusters/electricalMeasurement.js b/node_modules/zigbee-clusters/lib/clusters/electricalMeasurement.js
+index 8474f85..748c17c 100644
+--- a/node_modules/zigbee-clusters/lib/clusters/electricalMeasurement.js
++++ b/node_modules/zigbee-clusters/lib/clusters/electricalMeasurement.js
+@@ -14,6 +14,7 @@ const ATTRIBUTES = {
+   rmsCurrent: { id: 1288, type: ZCLDataTypes.uint16 },
+   activePower: { id: 1291, type: ZCLDataTypes.int16 },
+   reactivePower: { id: 1294, type: ZCLDataTypes.int16 },
++  apparentPower: { id: 1295, type: ZCLDataTypes.uint16 },
+   acVoltageMultiplier: { id: 1536, type: ZCLDataTypes.uint16 },
+   acVoltageDivisor: { id: 1537, type: ZCLDataTypes.uint16 },
+   acCurrentMultiplier: { id: 1538, type: ZCLDataTypes.uint16 },
+@@ -24,6 +25,9 @@ const ATTRIBUTES = {
+   acVoltageOverload: { id: 2049, type: ZCLDataTypes.uint16 },
+   acCurrentOverload: { id: 2050, type: ZCLDataTypes.uint16 },
+   acActivePowerOverload: { id: 2051, type: ZCLDataTypes.uint16 },
++  maximalIntensity: { id: 0x050A, type: ZCLDataTypes.uint16 },
++  phase2ApparentPower: { id: 0x090F, type: ZCLDataTypes.uint16 },
++  phase3ApparentPower: { id: 0x0A0F, type: ZCLDataTypes.uint16 },
+ };
+ 
+ const COMMANDS = {};
+diff --git a/node_modules/zigbee-clusters/lib/clusters/index.js b/node_modules/zigbee-clusters/lib/clusters/index.js
+index 4a9b5fb..4145192 100644
+--- a/node_modules/zigbee-clusters/lib/clusters/index.js
++++ b/node_modules/zigbee-clusters/lib/clusters/index.js
+@@ -47,6 +47,8 @@ const MeteringCluster = require('./metering');
+ const ElectricalMeasurementCluster = require('./electricalMeasurement');
+ const DiagnosticsCluster = require('./diagnostics');
+ const TouchLinkCluster = require('./touchlink');
++const LixeePrivate = require('./lixeePrivate');
++const MeterIdentification = require('./meterIdentification');
+ 
+ /**
+  * Destructure desired constant properties from Cluster classes.
+@@ -111,8 +113,10 @@ module.exports = {
+   IASWDCluster, // 0x0502 => 1282
+   MeteringCluster, // 0x0702 => 1794
+   ElectricalMeasurementCluster, // 0x0b04 => 2820
++  LixeePrivate, // 0xFF66 => 4097
+   DiagnosticsCluster, // 0x0b05 => 2821
+   TouchLinkCluster, // 0x1000 => 4096
++  MeterIdentification, // 0x0B01 => 4098
+   CLUSTER: {
+     BASIC: destructConstProps(BasicCluster),
+     POWER_CONFIGURATION: destructConstProps(PowerConfigurationCluster),
+@@ -157,7 +161,9 @@ module.exports = {
+     IAS_WD: destructConstProps(IASWDCluster),
+     METERING: destructConstProps(MeteringCluster),
+     ELECTRICAL_MEASUREMENT: destructConstProps(ElectricalMeasurementCluster),
++    LIXEE_PRIVATE: destructConstProps(LixeePrivate),
+     DIAGNOSTICS: destructConstProps(DiagnosticsCluster),
+     TOUCHLINK: destructConstProps(TouchLinkCluster),
++    METER_IDENTIFICATION: destructConstProps(MeterIdentification),
+   },
+ };
+diff --git a/node_modules/zigbee-clusters/lib/clusters/lixeePrivate.js b/node_modules/zigbee-clusters/lib/clusters/lixeePrivate.js
+new file mode 100644
+index 0000000..68914c5
+--- /dev/null
++++ b/node_modules/zigbee-clusters/lib/clusters/lixeePrivate.js
+@@ -0,0 +1,59 @@
++'use strict';
++
++const Cluster = require('../Cluster');
++const { ZCLDataTypes } = require('../zclTypes');
++
++const ATTRIBUTES = {
++  priceOption: { id: 0x0000, type: ZCLDataTypes.enum16({
++      'BASE': 0,
++      'HC..': 1,
++      'EJP.': 2,
++      'BBRx': 3,
++    }),
++  },
++  tomorrowColor: { id: 0x0001, type: ZCLDataTypes.string },
++  clockFullHourEmptyHour: { id: 0x0002, type: ZCLDataTypes.enum8({
++      A: 0,
++      C: 1,
++      D: 2,
++      E: 3,
++      Y: 3,
++    }),
++  },
++  mode: { id: 0x0300, type: ZCLDataTypes.enum8({
++      historique_monophase: 0,
++      standard_monophase: 1,
++      historique_triphase: 2,
++      standard_triphase: 3,
++      historique_triphase_producteur: 5,
++      standard_triphase_producteur: 7,
++    }),
++  },
++  subscribePowerAlert: { id: 0x0005, type: ZCLDataTypes.uint16 },
++};
++
++const COMMANDS = {};
++
++class LixeePrivate extends Cluster {
++
++  static get ID() {
++    return 0xFF66;
++  }
++
++  static get NAME() {
++    return 'lixeePrivate';
++  }
++
++  static get ATTRIBUTES() {
++    return ATTRIBUTES;
++  }
++
++  static get COMMANDS() {
++    return COMMANDS;
++  }
++
++}
++
++Cluster.addCluster(LixeePrivate);
++
++module.exports = LixeePrivate;
+diff --git a/node_modules/zigbee-clusters/lib/clusters/meterIdentification.js b/node_modules/zigbee-clusters/lib/clusters/meterIdentification.js
+new file mode 100644
+index 0000000..08fe2aa
+--- /dev/null
++++ b/node_modules/zigbee-clusters/lib/clusters/meterIdentification.js
+@@ -0,0 +1,34 @@
++'use strict';
++
++const Cluster = require('../Cluster');
++const { ZCLDataTypes } = require('../zclTypes');
++
++const ATTRIBUTES = {
++  subscribeIntensity: { id: 0x000D, type: ZCLDataTypes.int16 },
++};
++
++const COMMANDS = {};
++
++class MeterIdentification extends Cluster {
++
++  static get ID() {
++    return 0x0B01;
++  }
++
++  static get NAME() {
++    return 'meterIdentification';
++  }
++
++  static get ATTRIBUTES() {
++    return ATTRIBUTES;
++  }
++
++  static get COMMANDS() {
++    return COMMANDS;
++  }
++
++}
++
++Cluster.addCluster(MeterIdentification);
++
++module.exports = MeterIdentification;
+diff --git a/node_modules/zigbee-clusters/lib/clusters/metering.js b/node_modules/zigbee-clusters/lib/clusters/metering.js
+index 6ae4d58..0510f35 100644
+--- a/node_modules/zigbee-clusters/lib/clusters/metering.js
++++ b/node_modules/zigbee-clusters/lib/clusters/metering.js
+@@ -4,7 +4,23 @@ const Cluster = require('../Cluster');
+ const { ZCLDataTypes } = require('../zclTypes');
+ 
+ const ATTRIBUTES = {
++  serialNumber: { id: 0x0308, type: ZCLDataTypes.string },
++  pricePeriod: { id: 0x0020, type: ZCLDataTypes.enum8({
++      'TH..': 0,
++      'HC..': 1,
++      'HP..': 2,
++      'HN..': 4,
++      'PM..': 5,
++      'HCJB': 6,
++      'HCJW': 7,
++      'HCJR': 8,
++      'HPJB': 9,
++      'HPJW': 10,
++    }),
++  },
+   currentSummationDelivered: { id: 0, type: ZCLDataTypes.uint48 },
++  currentSummationDeliveredHCHC: { id: 0x0100, type: ZCLDataTypes.uint48 },
++  currentSummationDeliveredHCHP: { id: 0x0102, type: ZCLDataTypes.uint48 },
+   currentSummationReceived: { id: 1, type: ZCLDataTypes.uint48 },
+   currentMaxDemandDelivered: { id: 2, type: ZCLDataTypes.uint48 },
+   currentMaxDemandReceived: { id: 3, type: ZCLDataTypes.uint48 },

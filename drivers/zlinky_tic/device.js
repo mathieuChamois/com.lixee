@@ -78,7 +78,7 @@ class Device extends ZigBeeDevice {
                           'clockFullHourEmptyHour'
                         );
 
-                      await this.setCapabilityValue('debug_capability', priceOption);
+                      await this.setCapabilityValue('debug_capability', priceOption || null);
 
                       if (['BASE', 'HC..', 'EJP.', 'BBR'].includes(priceOption) == false) {
                         priceOption = 'BBR';

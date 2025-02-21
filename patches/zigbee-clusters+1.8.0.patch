@@ -1,5 +1,5 @@
 diff --git a/node_modules/zigbee-clusters/lib/clusters/electricalMeasurement.js b/node_modules/zigbee-clusters/lib/clusters/electricalMeasurement.js
-index 8474f85..1fece8a 100644
+index 8474f85..748c17c 100644
 --- a/node_modules/zigbee-clusters/lib/clusters/electricalMeasurement.js
 +++ b/node_modules/zigbee-clusters/lib/clusters/electricalMeasurement.js
 @@ -14,6 +14,7 @@ const ATTRIBUTES = {
@@ -15,8 +15,8 @@ index 8474f85..1fece8a 100644
    acCurrentOverload: { id: 2050, type: ZCLDataTypes.uint16 },
    acActivePowerOverload: { id: 2051, type: ZCLDataTypes.uint16 },
 +  maximalIntensity: { id: 0x050A, type: ZCLDataTypes.uint16 },
-+  phase2ApparentPower: { id: 0x0908, type: ZCLDataTypes.uint16 },
-+  phase3ApparentPower: { id: 0x0A08, type: ZCLDataTypes.uint16 },
++  phase2ApparentPower: { id: 0x090F, type: ZCLDataTypes.uint16 },
++  phase3ApparentPower: { id: 0x0A0F, type: ZCLDataTypes.uint16 },
  };
  
  const COMMANDS = {};

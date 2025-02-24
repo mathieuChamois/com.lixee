@@ -3,6 +3,10 @@ const {
   debug,
   CLUSTER
 } = require('zigbee-clusters');
+const LixeePrivateCluster = require('../../lib/lixeePrivateCluster');
+const MeterIdentificationCluster = require('../../lib/meterIdentificationCluster');
+require('../../lib/lixeeElectricalMeasurementCluster');
+require('../../lib/lixeeMeteringCluster');
 const { Log } = require('homey-log');
 
 var lastLogDate;
@@ -32,8 +36,8 @@ class Device extends ZigBeeDevice {
           try {
             const {
               subscribeIntensity,
-            } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.METER_IDENTIFICATION)]
-              .clusters[CLUSTER.METER_IDENTIFICATION.NAME]
+            } = await zclNode.endpoints[self.getClusterEndpoint(MeterIdentificationCluster)]
+              .clusters[MeterIdentificationCluster.NAME]
               .readAttributes(
                 'subscribeIntensity'
               );
@@ -50,32 +54,32 @@ class Device extends ZigBeeDevice {
           try {
             let {
               priceOption
-            } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.LIXEE_PRIVATE)]
-              .clusters[CLUSTER.LIXEE_PRIVATE.NAME]
+            } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
+              .clusters[LixeePrivateCluster.NAME]
               .readAttributes(
                 'priceOption'
               );
 
             const {
               subscribePowerAlert,
-            } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.LIXEE_PRIVATE)]
-              .clusters[CLUSTER.LIXEE_PRIVATE.NAME]
+            } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
+              .clusters[LixeePrivateCluster.NAME]
               .readAttributes(
                 'subscribePowerAlert'
               );
 
             const {
               tomorrowColor,
-            } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.LIXEE_PRIVATE)]
-              .clusters[CLUSTER.LIXEE_PRIVATE.NAME]
+            } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
+              .clusters[LixeePrivateCluster.NAME]
               .readAttributes(
                 'tomorrowColor'
               );
 
             const {
               clockFullHourEmptyHour,
-            } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.LIXEE_PRIVATE)]
-              .clusters[CLUSTER.LIXEE_PRIVATE.NAME]
+            } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
+              .clusters[LixeePrivateCluster.NAME]
               .readAttributes(
                 'clockFullHourEmptyHour'
               );
@@ -279,8 +283,8 @@ class Device extends ZigBeeDevice {
   }
 
   async getMode(zclNode) {
-    return await zclNode.endpoints[this.getClusterEndpoint(CLUSTER.LIXEE_PRIVATE)]
-      .clusters[CLUSTER.LIXEE_PRIVATE.NAME]
+    return await zclNode.endpoints[this.getClusterEndpoint(LixeePrivateCluster)]
+      .clusters[LixeePrivateCluster.NAME]
       .readAttributes(
         'mode'
       );

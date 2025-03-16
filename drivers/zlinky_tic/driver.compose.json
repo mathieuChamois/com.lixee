@@ -2,6 +2,8 @@
   "name": { "en": "ZLinky_TIC" },
   "class": "other",
   "capabilities": [
+    "full_hour_capability",
+    "empty_hour_capability",
     "price_option_capability",
     "serial_number_capability",
     "price_period_capability",
@@ -26,7 +28,7 @@
     "meter_power": {
       "title": {
         "en": "Summation delivered",
-        "fr": "Index"
+        "fr": "Index BASE"
       }
     },
     "measure_power": {

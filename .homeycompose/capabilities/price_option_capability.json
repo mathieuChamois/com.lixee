@@ -20,6 +20,13 @@
       }
     },
     {
+      "id": "HPHC",
+      "title": {
+        "en": "Full Hour Empty Hour",
+        "fr": "Heures Pleine Heures Creuses"
+      }
+    },
+    {
       "id": "EJP.",
       "title": {
         "en": "EJP Option",

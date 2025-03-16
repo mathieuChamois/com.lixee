@@ -88,6 +88,8 @@
       },
       "class": "other",
       "capabilities": [
+        "full_hour_capability",
+        "empty_hour_capability",
         "price_option_capability",
         "serial_number_capability",
         "price_period_capability",
@@ -112,7 +114,7 @@
         "meter_power": {
           "title": {
             "en": "Summation delivered",
-            "fr": "Index"
+            "fr": "Index BASE"
           }
         },
         "measure_power": {
@@ -243,6 +245,38 @@
       "step": 0.5,
       "insights": false,
       "icon": "/assets/zap.svg"
+    },
+    "empty_hour_capability": {
+      "type": "number",
+      "title": {
+        "fr": "Index Heure creuses",
+        "en": "Empty hour"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kwh"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/meter_power.svg"
+    },
+    "full_hour_capability": {
+      "type": "number",
+      "title": {
+        "fr": "Index Heure pleines",
+        "en": "Full hour"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kwh"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/meter_power.svg"
     },
     "maximal_intensity_capability": {
       "type": "number",
@@ -382,6 +416,13 @@
           "title": {
             "en": "Empty Hour Option",
             "fr": "Option Heures Creuses"
+          }
+        },
+        {
+          "id": "HPHC",
+          "title": {
+            "en": "Full Hour Empty Hour",
+            "fr": "Heures Pleine Heures Creuses"
           }
         },
         {

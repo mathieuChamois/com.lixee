@@ -55,5 +55,47 @@
   },
   "1.0.0": {
     "en": "test version become prod version"
+  },
+  "1.1.0": {
+    "en": "add sentry for debug"
+  },
+  "1.1.1": {
+    "en": "just add .env"
+  },
+  "1.1.2": {
+    "en": "remove call on priceOptionStd"
+  },
+  "1.1.3": {
+    "en": "phase 2 and phase 3 not showing in debug"
+  },
+  "1.1.4": {
+    "en": "send log only when all data are refresh"
+  },
+  "1.1.5": {
+    "en": "debug triphase"
+  },
+  "1.1.6": {
+    "en": "show all phases for everyone"
+  },
+  "1.1.7": {
+    "en": "log every minute for better debug"
+  },
+  "1.1.8": {
+    "en": "limit rate on send log"
+  },
+  "1.1.9": {
+    "en": "update lib and catch sentry error"
+  },
+  "1.1.10": {
+    "en": "add async on init capabilities"
+  },
+  "1.1.11": {
+    "en": "multiple fixes, and use patch-package by dfischer0"
+  },
+  "1.1.12": {
+    "en": "multiple fixes, and use patch-package by dfischer0"
+  },
+  "1.1.13": {
+    "en": "remove phases for non triphase linky and disable sentry"
   }
 }

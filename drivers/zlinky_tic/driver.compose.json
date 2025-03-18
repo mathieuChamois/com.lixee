@@ -28,7 +28,7 @@
     "meter_power": {
       "title": {
         "en": "Summation delivered",
-        "fr": "Index BASE"
+        "fr": "Index"
       }
     },
     "measure_power": {

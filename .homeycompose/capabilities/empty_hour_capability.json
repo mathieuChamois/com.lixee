@@ -1,0 +1,14 @@
+{
+  "type": "number",
+  "title": {
+    "fr": "Index Heure creuses",
+    "en": "Empty hour"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "units": { "en": "kwh" },
+  "step": 0.5,
+  "insights": true,
+  "icon": "/assets/meter_power.svg"
+}

@@ -18,7 +18,9 @@
     "maximal_intensity_capability",
     "phase_2_apparent_power_capability",
     "phase_3_apparent_power_capability",
-    "clock_full_hour_empty_hour_capability"
+    "clock_full_hour_empty_hour_capability",
+    "meter_power.imported",
+    "meter_power.exported"
   ],
   "images": {
     "small": "{{driverAssetsPath}}/images/small.png",

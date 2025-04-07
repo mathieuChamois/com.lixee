@@ -203,6 +203,7 @@ class Device extends ZigBeeDevice {
                   await self.setCapabilityValue('price_period_capability', 'TH..');
                   await self.setCapabilityValue('price_option_capability', 'BASE');
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                 }
               }
 
@@ -216,6 +217,7 @@ class Device extends ZigBeeDevice {
                 await self.setCapabilityValue('price_option_capability', 'HPHC');
                 await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
                 await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHP);
+                await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHP);
               }
 
               self.log(currentSummationDeliveredHCHC);
@@ -228,12 +230,14 @@ class Device extends ZigBeeDevice {
                 await self.setCapabilityValue('price_option_capability', 'HPHC');
                 await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
                 await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHC);
+                await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHC);
               }
 
               switch (self.getCapabilityValue('price_option_capability')) {
                 case 'EJP.':
                 case 'BBR':
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                   break;
               }
             } else {
@@ -247,17 +251,21 @@ class Device extends ZigBeeDevice {
               switch (self.getCapabilityValue('price_option_capability')) {
                 case 'BASE':
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                   break;
                 case 'HC..':
                   if (currentSummationDeliveredHCHP > 0) {
                     await self.setCapabilityValue('meter_power', (currentSummationDeliveredHCHP / 1000));
+                    await self.setCapabilityValue('meter_power.imported', (currentSummationDeliveredHCHP / 1000));
                   } else {
                     await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                    await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                   }
                   break;
                 case 'EJP.':
                 case 'BBR':
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                   break;
               }
             }

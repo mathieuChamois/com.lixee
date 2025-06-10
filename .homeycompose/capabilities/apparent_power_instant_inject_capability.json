@@ -1,0 +1,15 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Injected instantaneous apparent power",
+    "fr": "Puissance app. Instantanée injectée"
+
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": true,
+  "units": { "en": "kwh" },
+  "step": 0.5,
+  "insights": true,
+  "icon": "/assets/current-ac.svg"
+}

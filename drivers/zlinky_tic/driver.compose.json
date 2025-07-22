@@ -10,6 +10,7 @@
     "tomorrow_color_capability",
     "subscribe_intensity_capability",
     "alarm_subscribe_power_capability",
+    "apparent_power_instant_inject_capability",
     "meter_power",
     "measure_power",
     "active_power_capability",

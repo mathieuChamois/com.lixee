@@ -70,6 +70,14 @@ class Device extends ZigBeeDevice {
               );
 
             const {
+              apparentPowerInstInject,
+            } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
+              .clusters[LixeePrivateCluster.NAME]
+              .readAttributes(
+                'apparentPowerInstInject'
+              );
+
+            const {
               tomorrowColor,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
               .clusters[LixeePrivateCluster.NAME]
@@ -93,6 +101,7 @@ class Device extends ZigBeeDevice {
               }
 
               await self.setCapabilityValue('price_option_capability', priceOption);
+              await self.setCapabilityValue('apparent_power_instant_inject_capability', apparentPowerInstInject);
             }
 
             await self.setCapabilityValue('clock_full_hour_empty_hour_capability', clockFullHourEmptyHour);
@@ -363,6 +372,14 @@ class Device extends ZigBeeDevice {
     await this.addCapability('mode_capability');
     if (explodedMode[0] !== undefined && this.hasCapability('mode_capability')) {
       await this.setCapabilityValue('mode_capability', explodedMode[0]);
+    }
+
+    await this.removeCapability('apparent_power_instant_inject_capability')
+      .catch(this.error);
+
+    if (explodedMode[0] === 'standard') {
+      await this.addCapability('apparent_power_instant_inject_capability')
+        .catch(this.error);
     }
 
     await this.removeCapability('price_period_capability').catch(this.error);

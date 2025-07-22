@@ -97,5 +97,14 @@
   },
   "1.1.13": {
     "en": "remove phases for non triphase linky and disable sentry"
+  },
+  "1.2.0": {
+    "en": "add HPHC for historique configuration"
+  },
+  "1.2.1": {
+    "en": "add hphc for historique configuration"
+  },
+  "1.2.2": {
+    "en": "debug option not available for everyone"
   }
 }

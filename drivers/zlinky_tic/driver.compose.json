@@ -1,6 +1,13 @@
 {
   "name": { "en": "ZLinky_TIC" },
   "class": "other",
+  "platforms": [
+    "local",
+    "cloud"
+  ],
+  "connectivity": [
+    "cloud"
+  ],
   "capabilities": [
     "meter_power.imported",
     "meter_power.exported",

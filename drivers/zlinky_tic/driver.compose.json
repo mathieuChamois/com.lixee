@@ -2,6 +2,9 @@
   "name": { "en": "ZLinky_TIC" },
   "class": "other",
   "capabilities": [
+    "meter_power.imported",
+    "meter_power.exported",
+    "measure_power",
     "full_hour_capability",
     "empty_hour_capability",
     "price_option_capability",
@@ -11,8 +14,7 @@
     "subscribe_intensity_capability",
     "alarm_subscribe_power_capability",
     "apparent_power_instant_inject_capability",
-    "meter_power",
-    "measure_power",
+    "phase_capability",
     "active_power_capability",
     "rms_current_capability",
     "rms_voltage_capability",
@@ -26,10 +28,16 @@
     "large": "{{driverAssetsPath}}/images/large.png"
   },
   "capabilitiesOptions": {
-    "meter_power": {
+    "meter_power.imported": {
       "title": {
-        "en": "Summation delivered",
-        "fr": "Index"
+        "en": "Imported Energy",
+        "fr": "Energie importée"
+      }
+    },
+    "meter_power.exported": {
+      "title": {
+        "en": "Exported Energy",
+        "fr": "Energie exportée"
       }
     },
     "measure_power": {
@@ -42,8 +50,8 @@
   },
   "energy": {
     "cumulative": true,
-    "cumulativeImportedCapability": "meter_power.imported",
-    "cumulativeExportedCapability": "meter_power.exported"
+    "meterPowerImportedCapability": "meter_power.imported",
+    "meterPowerExportedCapability": "meter_power.exported"
   },
   "zigbee": {
     "manufacturerName": "LiXee",

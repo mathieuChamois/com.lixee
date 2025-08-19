@@ -1,10 +1,11 @@
 {
   "id": "com.lixee",
-  "version": "1.1.13",
+  "version": "1.2.5",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "platforms": [
-    "local"
+    "local",
+    "cloud"
   ],
   "name": {
     "en": "liXee"
@@ -47,5 +48,6 @@
       }
     ]
   },
-  "homepage": "https://lixee.fr/"
+  "homepage": "https://lixee.fr/",
+  "support": "https://github.com/mathieuChamois/com.lixee"
 }

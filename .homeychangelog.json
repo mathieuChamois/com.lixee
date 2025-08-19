@@ -100,5 +100,11 @@
   },
   "1.2.0": {
     "en": "add inject power and debug energy tab"
+  },
+  "1.2.1": {
+    "en": "add cloud compatibility"
+  },
+  "1.2.5": {
+    "en": "add cloud compatibility"
   }
 }

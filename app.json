@@ -145,8 +145,8 @@
       },
       "energy": {
         "cumulative": true,
-        "meterPowerImportedCapability": "meter_power.imported",
-        "meterPowerExportedCapability": "meter_power.exported"
+        "cumulativeImportedCapability": "meter_power.imported",
+        "cumulativeExportedCapability": "meter_power.exported"
       },
       "zigbee": {
         "manufacturerName": "LiXee",

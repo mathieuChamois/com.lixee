@@ -106,5 +106,8 @@
   },
   "1.2.5": {
     "en": "add cloud compatibility"
+  },
+  "1.2.6": {
+    "en": "use cumulativeImportedCapability and cumulativeExportedCapability and set exported correctly"
   }
 }

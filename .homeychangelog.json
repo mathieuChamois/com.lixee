@@ -109,5 +109,8 @@
   },
   "1.2.6": {
     "en": "use cumulativeImportedCapability and cumulativeExportedCapability and set exported correctly"
+  },
+  "1.2.7": {
+    "en": "revert meter power capability"
   }
 }

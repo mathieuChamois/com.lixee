@@ -211,6 +211,7 @@ class Device extends ZigBeeDevice {
                 if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
                   await self.setCapabilityValue('price_period_capability', 'TH..');
                   await self.setCapabilityValue('price_option_capability', 'BASE');
+                  await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.exported', 0);
                 }
@@ -225,6 +226,7 @@ class Device extends ZigBeeDevice {
                 await self.setCapabilityValue('price_period_capability', 'HP..');
                 await self.setCapabilityValue('price_option_capability', 'HPHC');
                 await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
+                await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHP);
                 await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHP);
                 await self.setCapabilityValue('meter_power.exported', 0);
               }
@@ -238,6 +240,7 @@ class Device extends ZigBeeDevice {
                 await self.setCapabilityValue('price_period_capability', 'HC..');
                 await self.setCapabilityValue('price_option_capability', 'HPHC');
                 await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
+                await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHC);
                 await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHC);
                 await self.setCapabilityValue('meter_power.exported', 0);
               }
@@ -245,6 +248,7 @@ class Device extends ZigBeeDevice {
               switch (self.getCapabilityValue('price_option_capability')) {
                 case 'EJP.':
                 case 'BBR':
+                  await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.exported', 0);
                   break;
@@ -259,20 +263,24 @@ class Device extends ZigBeeDevice {
               self.log(self.getCapabilityValue('price_option_capability'));
               switch (self.getCapabilityValue('price_option_capability')) {
                 case 'BASE':
+                  await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.exported', 0);
                   break;
                 case 'HC..':
                   if (currentSummationDeliveredHCHP > 0) {
+                    await self.setCapabilityValue('meter_power', (currentSummationDeliveredHCHP / 1000));
                     await self.setCapabilityValue('meter_power.imported', (currentSummationDeliveredHCHP / 1000));
                     await self.setCapabilityValue('meter_power.exported', 0);
                   } else {
+                    await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                     await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                     await self.setCapabilityValue('meter_power.exported', 0);
                   }
                   break;
                 case 'EJP.':
                 case 'BBR':
+                  await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.exported', 0);
                   break;
@@ -293,8 +301,6 @@ class Device extends ZigBeeDevice {
   }
 
   async prepareCapabilities() {
-    await this.removeCapability('meter_power').catch(this.error);
-
     await this.removeCapability('debug_capability')
       .catch(this.error);
     await this.removeCapability('clock_full_hour_empty_hour_capability')
@@ -351,13 +357,11 @@ class Device extends ZigBeeDevice {
 
   async prepareMode(currentMode) {
     let explodedMode = currentMode.mode.split('_');
-    await this.removeCapability('price_period_capability').catch(this.error);
-    await this.addCapability('price_period_capability').catch(this.error)
+    await this.removeCapability('meter_power.imported').catch(this.error);
+
+    await this.addCapability('meter_power.imported').catch(this.error)
       .then(async () => {
-        await this.removeCapability('meter_power.imported').catch(this.error);
         await this.removeCapability('meter_power.exported').catch(this.error);
-        await this.addCapability('meter_power.imported')
-          .catch(this.error);
         await this.addCapability('meter_power.exported')
           .catch(this.error)
           .then(async () => {
@@ -371,11 +375,8 @@ class Device extends ZigBeeDevice {
             await this.addCapability('full_hour_capability').catch(this.error);
             await this.addCapability('empty_hour_capability').catch(this.error);
 
-            await this.removeCapability('phase_capability');
-            await this.addCapability('phase_capability');
-            if (explodedMode[1] !== undefined && this.hasCapability('phase_capability')) {
-              await this.setCapabilityValue('phase_capability', explodedMode[1]);
-            }
+            await this.removeCapability('price_period_capability').catch(this.error);
+            await this.addCapability('price_period_capability').catch(this.error);
 
             await this.removeCapability('phase_1_apparent_power_capability');
             if (explodedMode[1] === 'triphase') await this.addCapability('phase_1_apparent_power_capability');
@@ -386,10 +387,19 @@ class Device extends ZigBeeDevice {
             await this.removeCapability('phase_3_apparent_power_capability').catch(this.error);
             if (explodedMode[1] === 'triphase') await this.addCapability('phase_3_apparent_power_capability');
 
+            await this.removeCapability('price_option_capability').catch(this.error);
+            await this.addCapability('price_option_capability').catch(this.error);
+
             await this.removeCapability('mode_capability');
             await this.addCapability('mode_capability');
             if (explodedMode[0] !== undefined && this.hasCapability('mode_capability')) {
               await this.setCapabilityValue('mode_capability', explodedMode[0]);
+            }
+
+            await this.removeCapability('phase_capability');
+            await this.addCapability('phase_capability');
+            if (explodedMode[1] !== undefined && this.hasCapability('phase_capability')) {
+              await this.setCapabilityValue('phase_capability', explodedMode[1]);
             }
 
             await this.removeCapability('apparent_power_instant_inject_capability').catch(this.error);
@@ -397,9 +407,6 @@ class Device extends ZigBeeDevice {
             if (explodedMode[0] === 'standard') {
               await this.addCapability('apparent_power_instant_inject_capability').catch(this.error);
             }
-
-            await this.removeCapability('price_option_capability').catch(this.error);
-            await this.addCapability('price_option_capability').catch(this.error);
 
             await this.removeCapability('produce_capability').catch(this.error);
             await this.addCapability('produce_capability');

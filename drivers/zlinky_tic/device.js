@@ -146,6 +146,22 @@ class Device extends ZigBeeDevice {
               phase3ApparentPower = 0;
             }
 
+            if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase' && phase2ApparentPower == 0 && phase3ApparentPower == 0) {
+              if (self.hasCapability('phase_1_apparent_power_capability')) {
+                await self.removeCapability('phase_1_apparent_power_capability').catch(this.error);
+              }
+
+              if (self.hasCapability('phase_2_apparent_power_capability')) {
+                await self.removeCapability('phase_2_apparent_power_capability').catch(this.error);
+              }
+
+              if (self.hasCapability('phase_3_apparent_power_capability')) {
+                await self.removeCapability('phase_3_apparent_power_capability').catch(this.error);
+              }
+
+              await self.setCapabilityValue('phase_capability', 'monophase');
+            }
+
             if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase') {
               await self.setCapabilityValue('phase_1_apparent_power_capability', apparentPower);
               await self.setCapabilityValue('phase_2_apparent_power_capability', phase2ApparentPower ?? 0);
@@ -378,7 +394,7 @@ class Device extends ZigBeeDevice {
             await this.removeCapability('price_period_capability').catch(this.error);
             await this.addCapability('price_period_capability').catch(this.error);
 
-            await this.removeCapability('phase_1_apparent_power_capability');
+            await this.removeCapability('phase_1_apparent_power_capability').catch(this.error);
             if (explodedMode[1] === 'triphase') await this.addCapability('phase_1_apparent_power_capability');
 
             await this.removeCapability('phase_2_apparent_power_capability').catch(this.error);

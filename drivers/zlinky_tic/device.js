@@ -39,9 +39,9 @@ class Device extends ZigBeeDevice {
               subscribeIntensity,
             } = await zclNode.endpoints[self.getClusterEndpoint(MeterIdentificationCluster)]
               .clusters[MeterIdentificationCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'subscribeIntensity'
-              );
+              ]);
 
             await self.setCapabilityValue('subscribe_intensity_capability', subscribeIntensity);
 
@@ -57,33 +57,33 @@ class Device extends ZigBeeDevice {
               priceOption
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
               .clusters[LixeePrivateCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'priceOption'
-              );
+              ]);
 
             const {
               subscribePowerAlert,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
               .clusters[LixeePrivateCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'subscribePowerAlert'
-              );
+              ]);
 
             const {
               apparentPowerInstInject,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
               .clusters[LixeePrivateCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'apparentPowerInstInject'
-              );
+              ]);
 
             const {
               tomorrowColor,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
               .clusters[LixeePrivateCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'tomorrowColor'
-              );
+              ]);
 
             await self.setCapabilityValue('debug_capability', tomorrowColor);
 
@@ -91,9 +91,9 @@ class Device extends ZigBeeDevice {
               clockFullHourEmptyHour,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
               .clusters[LixeePrivateCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'clockFullHourEmptyHour'
-              );
+              ]);
 
             if (self.getCapabilityValue('mode_capability') === 'standard') {
               if (['BASE', 'HC..', 'EJP.', 'BBR'].includes(priceOption) == false) {
@@ -127,7 +127,7 @@ class Device extends ZigBeeDevice {
               phase3ApparentPower,
             } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.ELECTRICAL_MEASUREMENT)]
               .clusters[CLUSTER.ELECTRICAL_MEASUREMENT.NAME]
-              .readAttributes(
+              .readAttributes([
                 'rmsVoltage',
                 'rmsCurrent',
                 'activePower',
@@ -136,7 +136,7 @@ class Device extends ZigBeeDevice {
                 'measurementType',
                 'phase2ApparentPower',
                 'phase3ApparentPower'
-              );
+              ]);
 
             if (phase2ApparentPower == undefined || phase2ApparentPower == 65535) {
               phase2ApparentPower = 0;
@@ -211,13 +211,13 @@ class Device extends ZigBeeDevice {
               pricePeriod
             } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.METERING)]
               .clusters[CLUSTER.METERING.NAME]
-              .readAttributes(
+              .readAttributes([
                 'currentSummationDelivered',
                 'currentSummationDeliveredHCHC',
                 'currentSummationDeliveredHCHP',
                 'serialNumber',
                 'pricePeriod'
-              );
+              ]);
 
             await self.setCapabilityValue('serial_number_capability', serialNumber);
 
@@ -361,14 +361,18 @@ class Device extends ZigBeeDevice {
       .catch(this.error);
     await this.addCapability('active_power_capability')
       .catch(this.error);
+
+    if (this.hasCapability('meter_power') === false) {
+      await this.addCapability('meter_power').catch(this.error);
+    }
   }
 
   async getMode(zclNode) {
     return await zclNode.endpoints[this.getClusterEndpoint(LixeePrivateCluster)]
       .clusters[LixeePrivateCluster.NAME]
-      .readAttributes(
+      .readAttributes([
         'mode'
-      );
+      ]);
   }
 
   async prepareMode(currentMode) {

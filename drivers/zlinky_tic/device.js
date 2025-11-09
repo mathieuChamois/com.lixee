@@ -85,8 +85,6 @@ class Device extends ZigBeeDevice {
                 'tomorrowColor'
               ]);
 
-            await self.setCapabilityValue('debug_capability', tomorrowColor);
-
             const {
               clockFullHourEmptyHour,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
@@ -298,8 +296,6 @@ class Device extends ZigBeeDevice {
   }
 
   async prepareCapabilities() {
-    await this.removeCapability('debug_capability')
-      .catch(this.error);
     await this.removeCapability('clock_full_hour_empty_hour_capability')
       .catch(this.error);
     await this.removeCapability('serial_number_capability')
@@ -356,8 +352,30 @@ class Device extends ZigBeeDevice {
       ]);
   }
 
+  decodeMode(modeInt) {
+    // Maps numeric mode (enum8/uint8) to ['mode', 'phase', 'producteur?']
+    // 0: historique_monophase
+    // 1: standard_monophase
+    // 2: historique_triphase
+    // 3: standard_triphase
+    // 5: historique_triphase_producteur
+    // 7: standard_triphase_producteur
+    switch (modeInt) {
+      case 0: return ['historique', 'monophase'];
+      case 1: return ['standard', 'monophase'];
+      case 2: return ['historique', 'triphase'];
+      case 3: return ['standard', 'triphase'];
+      case 5: return ['historique', 'triphase', 'producteur'];
+      case 7: return ['standard', 'triphase', 'producteur'];
+      default:
+        this.log(`Unknown mode value for 0x0300: ${modeInt} — defaulting to historique_monophase`);
+        return ['historique', 'monophase'];
+    }
+  }
+
   async prepareMode(currentMode) {
-    let explodedMode = currentMode.mode.split('_');
+    const explodedMode = this.decodeMode(currentMode.mode);
+
     await this.removeCapability('meter_power.imported').catch(this.error);
 
     await this.addCapability('meter_power.imported').catch(this.error)
@@ -412,6 +430,10 @@ class Device extends ZigBeeDevice {
             await this.removeCapability('produce_capability').catch(this.error);
             await this.addCapability('produce_capability');
             await this.setCapabilityValue('produce_capability', explodedMode[2] !== undefined);
+
+            await this.removeCapability('debug_capability').catch(this.error);
+            await this.addCapability('debug_capability').catch(this.error);
+            await this.setCapabilityValue('debug_capability', String(currentMode.mode));
           });
       });
   }

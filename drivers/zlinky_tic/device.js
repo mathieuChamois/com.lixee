@@ -39,9 +39,9 @@ class Device extends ZigBeeDevice {
               subscribeIntensity,
             } = await zclNode.endpoints[self.getClusterEndpoint(MeterIdentificationCluster)]
               .clusters[MeterIdentificationCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'subscribeIntensity'
-              );
+              ]);
 
             await self.setCapabilityValue('subscribe_intensity_capability', subscribeIntensity);
 
@@ -57,33 +57,33 @@ class Device extends ZigBeeDevice {
               priceOption
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
               .clusters[LixeePrivateCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'priceOption'
-              );
+              ]);
 
             const {
               subscribePowerAlert,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
               .clusters[LixeePrivateCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'subscribePowerAlert'
-              );
+              ]);
 
             const {
               apparentPowerInstInject,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
               .clusters[LixeePrivateCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'apparentPowerInstInject'
-              );
+              ]);
 
             const {
               tomorrowColor,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
               .clusters[LixeePrivateCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'tomorrowColor'
-              );
+              ]);
 
             await self.setCapabilityValue('debug_capability', tomorrowColor);
 
@@ -91,9 +91,9 @@ class Device extends ZigBeeDevice {
               clockFullHourEmptyHour,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
               .clusters[LixeePrivateCluster.NAME]
-              .readAttributes(
+              .readAttributes([
                 'clockFullHourEmptyHour'
-              );
+              ]);
 
             if (self.getCapabilityValue('mode_capability') === 'standard') {
               if (['BASE', 'HC..', 'EJP.', 'BBR'].includes(priceOption) == false) {
@@ -127,7 +127,7 @@ class Device extends ZigBeeDevice {
               phase3ApparentPower,
             } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.ELECTRICAL_MEASUREMENT)]
               .clusters[CLUSTER.ELECTRICAL_MEASUREMENT.NAME]
-              .readAttributes(
+              .readAttributes([
                 'rmsVoltage',
                 'rmsCurrent',
                 'activePower',
@@ -136,7 +136,7 @@ class Device extends ZigBeeDevice {
                 'measurementType',
                 'phase2ApparentPower',
                 'phase3ApparentPower'
-              );
+              ]);
 
             if (phase2ApparentPower == undefined || phase2ApparentPower == 65535) {
               phase2ApparentPower = 0;
@@ -144,6 +144,22 @@ class Device extends ZigBeeDevice {
 
             if (phase3ApparentPower == undefined || phase3ApparentPower == 65535) {
               phase3ApparentPower = 0;
+            }
+
+            if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase' && phase2ApparentPower == 0 && phase3ApparentPower == 0) {
+              if (self.hasCapability('phase_1_apparent_power_capability')) {
+                await self.removeCapability('phase_1_apparent_power_capability').catch(this.error);
+              }
+
+              if (self.hasCapability('phase_2_apparent_power_capability')) {
+                await self.removeCapability('phase_2_apparent_power_capability').catch(this.error);
+              }
+
+              if (self.hasCapability('phase_3_apparent_power_capability')) {
+                await self.removeCapability('phase_3_apparent_power_capability').catch(this.error);
+              }
+
+              await self.setCapabilityValue('phase_capability', 'monophase');
             }
 
             if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase') {
@@ -195,23 +211,25 @@ class Device extends ZigBeeDevice {
               pricePeriod
             } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.METERING)]
               .clusters[CLUSTER.METERING.NAME]
-              .readAttributes(
+              .readAttributes([
                 'currentSummationDelivered',
                 'currentSummationDeliveredHCHC',
                 'currentSummationDeliveredHCHP',
                 'serialNumber',
                 'pricePeriod'
-              );
+              ]);
 
             await self.setCapabilityValue('serial_number_capability', serialNumber);
 
 
             if (self.getCapabilityValue('mode_capability') === 'historique') {
               if (currentSummationDelivered != 0) {
-                if (currentSummationDelivered != self.getCapabilityValue('meter_power')) {
+                if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
                   await self.setCapabilityValue('price_period_capability', 'TH..');
                   await self.setCapabilityValue('price_option_capability', 'BASE');
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.exported', 0);
                 }
               }
 
@@ -225,6 +243,8 @@ class Device extends ZigBeeDevice {
                 await self.setCapabilityValue('price_option_capability', 'HPHC');
                 await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
                 await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHP);
+                await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHP);
+                await self.setCapabilityValue('meter_power.exported', 0);
               }
 
               self.log(currentSummationDeliveredHCHC);
@@ -237,12 +257,16 @@ class Device extends ZigBeeDevice {
                 await self.setCapabilityValue('price_option_capability', 'HPHC');
                 await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
                 await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHC);
+                await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHC);
+                await self.setCapabilityValue('meter_power.exported', 0);
               }
 
               switch (self.getCapabilityValue('price_option_capability')) {
                 case 'EJP.':
                 case 'BBR':
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.exported', 0);
                   break;
               }
             } else {
@@ -256,17 +280,25 @@ class Device extends ZigBeeDevice {
               switch (self.getCapabilityValue('price_option_capability')) {
                 case 'BASE':
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.exported', 0);
                   break;
                 case 'HC..':
                   if (currentSummationDeliveredHCHP > 0) {
                     await self.setCapabilityValue('meter_power', (currentSummationDeliveredHCHP / 1000));
+                    await self.setCapabilityValue('meter_power.imported', (currentSummationDeliveredHCHP / 1000));
+                    await self.setCapabilityValue('meter_power.exported', 0);
                   } else {
                     await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                    await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
+                    await self.setCapabilityValue('meter_power.exported', 0);
                   }
                   break;
                 case 'EJP.':
                 case 'BBR':
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.exported', 0);
                   break;
               }
             }
@@ -308,6 +340,7 @@ class Device extends ZigBeeDevice {
     await this.removeCapability('maximal_intensity_capability')
       .catch(this.error);
 
+
     await this.addCapability('debug_capability')
       .catch(this.error);
     await this.addCapability('serial_number_capability')
@@ -328,69 +361,78 @@ class Device extends ZigBeeDevice {
       .catch(this.error);
     await this.addCapability('active_power_capability')
       .catch(this.error);
+
+    if (this.hasCapability('meter_power') === false) {
+      await this.addCapability('meter_power').catch(this.error);
+    }
   }
 
   async getMode(zclNode) {
     return await zclNode.endpoints[this.getClusterEndpoint(LixeePrivateCluster)]
       .clusters[LixeePrivateCluster.NAME]
-      .readAttributes(
+      .readAttributes([
         'mode'
-      );
+      ]);
   }
 
   async prepareMode(currentMode) {
     let explodedMode = currentMode.mode.split('_');
+    await this.removeCapability('meter_power.imported').catch(this.error);
 
-    await this.removeCapability('full_hour_capability')
-      .catch(this.error);
-    await this.removeCapability('empty_hour_capability')
-      .catch(this.error);
-    await this.addCapability('full_hour_capability')
-      .catch(this.error);
-    await this.addCapability('empty_hour_capability')
-      .catch(this.error);
+    await this.addCapability('meter_power.imported').catch(this.error)
+      .then(async () => {
+        await this.removeCapability('meter_power.exported').catch(this.error);
+        await this.addCapability('meter_power.exported')
+          .catch(this.error)
+          .then(async () => {
+            if (!this.hasCapability('meter_power.exported')) {
+              this.log('meter_power.exported capability not created; skipping subsequent capabilities');
+              return;
+            }
 
-    await this.removeCapability('phase_capability');
-    await this.addCapability('phase_capability')
-    if (explodedMode[1] !== undefined && this.hasCapability('phase_capability')) {
-      await this.setCapabilityValue('phase_capability', explodedMode[1]);
-    }
+            await this.removeCapability('full_hour_capability').catch(this.error);
+            await this.removeCapability('empty_hour_capability').catch(this.error);
+            await this.addCapability('full_hour_capability').catch(this.error);
+            await this.addCapability('empty_hour_capability').catch(this.error);
 
-    await this.removeCapability('phase_1_apparent_power_capability');
-    if (explodedMode[1] === 'triphase')
-      await this.addCapability('phase_1_apparent_power_capability');
+            await this.removeCapability('price_period_capability').catch(this.error);
+            await this.addCapability('price_period_capability').catch(this.error);
 
-    await this.removeCapability('phase_2_apparent_power_capability').catch(this.error);
-    if (explodedMode[1] === 'triphase')
-      await this.addCapability('phase_2_apparent_power_capability');
+            await this.removeCapability('phase_1_apparent_power_capability').catch(this.error);
+            if (explodedMode[1] === 'triphase') await this.addCapability('phase_1_apparent_power_capability');
 
-    await this.removeCapability('phase_3_apparent_power_capability').catch(this.error);
-    if (explodedMode[1] === 'triphase')
-      await this.addCapability('phase_3_apparent_power_capability');
+            await this.removeCapability('phase_2_apparent_power_capability').catch(this.error);
+            if (explodedMode[1] === 'triphase') await this.addCapability('phase_2_apparent_power_capability');
 
-    await this.removeCapability('mode_capability')
-    await this.addCapability('mode_capability');
-    if (explodedMode[0] !== undefined && this.hasCapability('mode_capability')) {
-      await this.setCapabilityValue('mode_capability', explodedMode[0]);
-    }
+            await this.removeCapability('phase_3_apparent_power_capability').catch(this.error);
+            if (explodedMode[1] === 'triphase') await this.addCapability('phase_3_apparent_power_capability');
 
-    await this.removeCapability('apparent_power_instant_inject_capability')
-      .catch(this.error);
+            await this.removeCapability('price_option_capability').catch(this.error);
+            await this.addCapability('price_option_capability').catch(this.error);
 
-    if (explodedMode[0] === 'standard') {
-      await this.addCapability('apparent_power_instant_inject_capability')
-        .catch(this.error);
-    }
+            await this.removeCapability('mode_capability');
+            await this.addCapability('mode_capability');
+            if (explodedMode[0] !== undefined && this.hasCapability('mode_capability')) {
+              await this.setCapabilityValue('mode_capability', explodedMode[0]);
+            }
 
-    await this.removeCapability('price_period_capability').catch(this.error);
-    await this.addCapability('price_period_capability').catch(this.error);
+            await this.removeCapability('phase_capability');
+            await this.addCapability('phase_capability');
+            if (explodedMode[1] !== undefined && this.hasCapability('phase_capability')) {
+              await this.setCapabilityValue('phase_capability', explodedMode[1]);
+            }
 
-    await this.removeCapability('price_option_capability').catch(this.error);
-    await this.addCapability('price_option_capability').catch(this.error);
+            await this.removeCapability('apparent_power_instant_inject_capability').catch(this.error);
 
-    await this.removeCapability('produce_capability').catch(this.error);
-    await this.addCapability('produce_capability')
-    await this.setCapabilityValue('produce_capability', explodedMode[2] !== undefined);
+            if (explodedMode[0] === 'standard') {
+              await this.addCapability('apparent_power_instant_inject_capability').catch(this.error);
+            }
+
+            await this.removeCapability('produce_capability').catch(this.error);
+            await this.addCapability('produce_capability');
+            await this.setCapabilityValue('produce_capability', explodedMode[2] !== undefined);
+          });
+      });
   }
 }
 

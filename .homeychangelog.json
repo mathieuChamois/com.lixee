@@ -97,5 +97,26 @@
   },
   "1.1.13": {
     "en": "remove phases for non triphase linky and disable sentry"
+  },
+  "1.2.0": {
+    "en": "add inject power and debug energy tab"
+  },
+  "1.2.1": {
+    "en": "add cloud compatibility"
+  },
+  "1.2.5": {
+    "en": "add cloud compatibility"
+  },
+  "1.2.6": {
+    "en": "use cumulativeImportedCapability and cumulativeExportedCapability and set exported correctly"
+  },
+  "1.2.7": {
+    "en": "revert meter power capability"
+  },
+  "1.2.8": {
+    "en": "fix triphase incorrect"
+  },
+  "1.3.0": {
+    "en": "Homey Tab Energy"
   }
 }

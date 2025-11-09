@@ -1,7 +1,18 @@
 {
   "name": { "en": "ZLinky_TIC" },
   "class": "other",
+  "platforms": [
+    "local",
+    "cloud"
+  ],
+  "connectivity": [
+    "cloud"
+  ],
   "capabilities": [
+    "meter_power",
+    "meter_power.imported",
+    "meter_power.exported",
+    "measure_power",
     "full_hour_capability",
     "empty_hour_capability",
     "price_option_capability",
@@ -11,8 +22,7 @@
     "subscribe_intensity_capability",
     "alarm_subscribe_power_capability",
     "apparent_power_instant_inject_capability",
-    "meter_power",
-    "measure_power",
+    "phase_capability",
     "active_power_capability",
     "rms_current_capability",
     "rms_voltage_capability",
@@ -30,6 +40,18 @@
       "title": {
         "en": "Summation delivered",
         "fr": "Index"
+      }
+    },
+    "meter_power.imported": {
+      "title": {
+        "en": "Imported Energy",
+        "fr": "Energie importée"
+      }
+    },
+    "meter_power.exported": {
+      "title": {
+        "en": "Exported Energy",
+        "fr": "Energie exportée"
       }
     },
     "measure_power": {

@@ -59,6 +59,10 @@
           "en": "alarm subscribe power is reached",
           "fr": "l'alarme de puissance souscrite est atteinte"
         },
+        "titleFormatted": {
+          "en": "alarm subscribe power is reached",
+          "fr": "l'alarme de puissance souscrite est atteinte"
+        },
         "args": [
           {
             "type": "device",
@@ -73,11 +77,165 @@
           "en": "alarm subscribe power is not reached",
           "fr": "l'alarme de puissance souscrite n'est pas atteinte"
         },
+        "titleFormatted": {
+          "en": "alarm subscribe power is not reached",
+          "fr": "l'alarme de puissance souscrite n'est pas atteinte"
+        },
         "args": [
           {
             "type": "device",
             "name": "device",
             "filter": "driver_id=zlinky_tic"
+          }
+        ]
+      },
+      {
+        "id": "period_option_became",
+        "title": {
+          "en": "Period became ...",
+          "fr": "La période devient ..."
+        },
+        "titleFormatted": {
+          "en": "Period on [[device]] became [[target]]",
+          "fr": "La période sur [[device]] devient [[target]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=zlinky_tic",
+            "title": { "en": "Device", "fr": "Appareil" }
+          },
+          {
+            "name": "target",
+            "type": "autocomplete",
+            "title": { "en": "Period", "fr": "Période" },
+            "values": [
+              {
+                "id": "TH..",
+                "name": "Toutes Heures"
+              },
+              {
+                "id": "HC..",
+                "name": "Heures Creuses"
+              },
+              {
+                "id": "HP..",
+                "name": "Heures Pleines"
+              },
+              {
+                "id": "HN..",
+                "name": "Heures Normales"
+              },
+              {
+                "id": "PM..",
+                "name": "Pointe Mobile"
+              },
+              {
+                "id": "HCJB",
+                "name": "HC Jour Bleu"
+              },
+              {
+                "id": "HCJW",
+                "name": "HC Jour Blanc"
+              },
+              {
+                "id": "HCJR",
+                "name": "HC Jour Rouge"
+              },
+              {
+                "id": "HPJB",
+                "name": "HP Jour Bleu"
+              },
+              {
+                "id": "HPJW",
+                "name": "HP Jour Blanc"
+              },
+              {
+                "id": "HPJR",
+                "name": "HP Jour Rouge"
+              },
+              {
+                "id": "UNKN",
+                "name": "Inconnu"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "conditions": [
+      {
+        "id": "period_option_is",
+        "title": {
+          "en": "Period is ...",
+          "fr": "La période est ..."
+        },
+        "titleFormatted": {
+          "en": "Period on [[device]] is [[target]]",
+          "fr": "La période sur [[device]] est [[target]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=zlinky_tic",
+            "title": { "en": "Device", "fr": "Appareil" }
+          },
+          {
+            "name": "target",
+            "type": "autocomplete",
+            "title": { "en": "Period", "fr": "Période" },
+            "values": [
+              {
+                "id": "TH..",
+                "name": "Toutes Heures"
+              },
+              {
+                "id": "HC..",
+                "name": "Heures Creuses"
+              },
+              {
+                "id": "HP..",
+                "name": "Heures Pleines"
+              },
+              {
+                "id": "HN..",
+                "name": "Heures Normales"
+              },
+              {
+                "id": "PM..",
+                "name": "Pointe Mobile"
+              },
+              {
+                "id": "HCJB",
+                "name": "HC Jour Bleu"
+              },
+              {
+                "id": "HCJW",
+                "name": "HC Jour Blanc"
+              },
+              {
+                "id": "HCJR",
+                "name": "HC Jour Rouge"
+              },
+              {
+                "id": "HPJB",
+                "name": "HP Jour Bleu"
+              },
+              {
+                "id": "HPJW",
+                "name": "HP Jour Blanc"
+              },
+              {
+                "id": "HPJR",
+                "name": "HP Jour Rouge"
+              },
+              {
+                "id": "UNKN",
+                "name": "Inconnu"
+              }
+            ]
           }
         ]
       }
@@ -465,7 +623,7 @@
           "id": "HPHC",
           "title": {
             "en": "Full Hour Empty Hour",
-            "fr": "Heures Pleine Heures Creuses"
+            "fr": "Heures Pleines Heures Creuses"
           }
         },
         {

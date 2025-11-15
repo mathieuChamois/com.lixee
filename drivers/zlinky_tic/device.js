@@ -33,6 +33,109 @@ class Device extends ZigBeeDevice {
         await self.prepareMode(await self.getMode(zclNode));
         await self.prepareCapabilities()
 
+        // Enregistre la condition Flow "period_option_is"
+        try {
+          // Options de saisie semi-automatique pour "target" (périodes)
+          const PERIOD_OPTIONS = [
+            { id: 'TH..', name: 'Toutes Heures' },
+            { id: 'HC..', name: 'Heures Creuses' },
+            { id: 'HP..', name: 'Heures Pleines' },
+            { id: 'HN..', name: 'Heures Normales' },
+            { id: 'PM..', name: 'Pointe Mobile' },
+            { id: 'HCJB', name: 'HC Jour Bleu' },
+            { id: 'HCJW', name: 'HC Jour Blanc' },
+            { id: 'HCJR', name: 'HC Jour Rouge' },
+            { id: 'HPJB', name: 'HP Jour Bleu' },
+            { id: 'HPJW', name: 'HP Jour Blanc' },
+            { id: 'HPJR', name: 'HP Jour Rouge' },
+            { id: 'UNKN', name: 'Inconnu' },
+          ];
+
+          // Enregistre la condition + l'autocomplete pour l'argument "target"
+          // SDK v3: condition cards are obtained via getConditionCard (no device-specific variant)
+          const periodOptionIsCard = self.homey.flow.getConditionCard('period_option_is');
+          periodOptionIsCard.registerRunListener(async (args, state) => {
+            try {
+              const current = self.getCapabilityValue('price_period_capability');
+              const target = args && args.target ? (args.target.id || args.target) : undefined;
+              return current === target;
+            } catch (e) {
+              self.error(`Condition period_option_is failed: ${e && e.message ? e.message : e}`);
+              return false;
+            }
+          });
+          periodOptionIsCard.registerArgumentAutocompleteListener('target', async (query, args) => {
+            const q = (query || '').toString().toLowerCase();
+            if (!q) return PERIOD_OPTIONS;
+            return PERIOD_OPTIONS.filter(opt =>
+              opt.id.toLowerCase().includes(q) || (opt.name && opt.name.toLowerCase().includes(q))
+            );
+          });
+        } catch (e) {
+          self.error(`Failed to register condition card period_option_is: ${e && e.message ? e.message : e}`);
+        }
+
+        // Enregistre la carte de déclenchement Flow "period_option_became"
+        try {
+          self._periodOptionBecameCard = self.homey.flow.getDeviceTriggerCard('period_option_became');
+          // Permettre le filtrage par la cible choisie dans la carte Flow
+          self._periodOptionBecameCard.registerRunListener(async (args, state) => {
+            try {
+              const selected = args && args.target ? (args.target.id || args.target) : undefined;
+              if (!selected) return true; // aucun filtre sélectionné
+              return state && state.target ? state.target === selected : false;
+            } catch (e) {
+              self.error(`period_option_became run listener failed: ${e && e.message ? e.message : e}`);
+              return false;
+            }
+          });
+          // Autocomplete pour l'argument "target" de la carte trigger
+          self._periodOptionBecameCard.registerArgumentAutocompleteListener('target', async (query, args) => {
+            const PERIOD_OPTIONS = [
+              { id: 'TH..', name: 'Toutes Heures' },
+              { id: 'HC..', name: 'Heures Creuses' },
+              { id: 'HP..', name: 'Heures Pleines' },
+              { id: 'HN..', name: 'Heures Normales' },
+              { id: 'PM..', name: 'Pointe Mobile' },
+              { id: 'HCJB', name: 'HC Jour Bleu' },
+              { id: 'HCJW', name: 'HC Jour Blanc' },
+              { id: 'HCJR', name: 'HC Jour Rouge' },
+              { id: 'HPJB', name: 'HP Jour Bleu' },
+              { id: 'HPJW', name: 'HP Jour Blanc' },
+              { id: 'HPJR', name: 'HP Jour Rouge' },
+              { id: 'UNKN', name: 'Inconnu' },
+            ];
+            const q = (query || '').toString().toLowerCase();
+            if (!q) return PERIOD_OPTIONS;
+            return PERIOD_OPTIONS.filter(opt =>
+              opt.id.toLowerCase().includes(q) || (opt.name && opt.name.toLowerCase().includes(q))
+            );
+          });
+        } catch (e) {
+          self.error(`Failed to register trigger card period_option_became: ${e && e.message ? e.message : e}`);
+        }
+
+        // Mémorise la dernière période connue
+        self._lastPeriod = self.getCapabilityValue('price_period_capability');
+
+        // Helper: met à jour la capability de période et déclenche le Flow si elle change
+        self._updatePeriodIfChanged = async (newValue) => {
+          try {
+            if (!newValue) return;
+            const prev = self._lastPeriod;
+            if (prev !== newValue) {
+              await self.setCapabilityValue('price_period_capability', newValue);
+              self._lastPeriod = newValue;
+              if (self._periodOptionBecameCard) {
+                await self._periodOptionBecameCard.trigger(self, { target: newValue }, { target: newValue });
+                self.log(`Flow trigger 'period_option_became' fired (target=${newValue})`);
+              }
+            }
+          } catch (e) {
+            self.error(`update/trigger price_period_capability failed: ${e && e.message ? e.message : e}`);
+          }
+        };
+
         setInterval(async () => {
           try {
             const {
@@ -98,7 +201,8 @@ class Device extends ZigBeeDevice {
                 priceOption = 'BBR';
               }
 
-              await self.setCapabilityValue('price_option_capability', priceOption);
+              // On continue à mettre à jour la capability d'option tarifaire pour compatibilité existante
+              await self._updatePriceOptionIfChanged(priceOption);
               await self.setCapabilityValue('apparent_power_instant_inject_capability', apparentPowerInstInject);
             }
 
@@ -204,8 +308,8 @@ class Device extends ZigBeeDevice {
             // if (self.getCapabilityValue('mode_capability') === 'historique') {
               if (currentSummationDelivered != 0) {
                 if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
-                  await self.setCapabilityValue('price_period_capability', 'TH..');
-                  await self.setCapabilityValue('price_option_capability', 'BASE');
+                  await self._updatePeriodIfChanged('TH..');
+                  await self._updatePriceOptionIfChanged('BASE');
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
@@ -218,7 +322,7 @@ class Device extends ZigBeeDevice {
               if (currentSummationDeliveredHCHP != hpLastValue) {
                 hpLastValue = currentSummationDeliveredHCHP;
                 currentSummationDeliveredHCHP = Math.floor((currentSummationDeliveredHCHP ?? 0) / 1000);
-                await self.setCapabilityValue('price_period_capability', 'HP..');
+                await self._updatePeriodIfChanged('HP..');
                 await self.setCapabilityValue('price_option_capability', 'HPHC');
                 await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
                 await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHP);
@@ -232,7 +336,7 @@ class Device extends ZigBeeDevice {
               if (currentSummationDeliveredHCHC != hcLastValue) {
                 hcLastValue = currentSummationDeliveredHCHC;
                 currentSummationDeliveredHCHC = Math.floor((currentSummationDeliveredHCHC ?? 0) / 1000);
-                await self.setCapabilityValue('price_period_capability', 'HC..');
+                await self._updatePeriodIfChanged('HC..');
                 await self.setCapabilityValue('price_option_capability', 'HPHC');
                 await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
                 await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHC);

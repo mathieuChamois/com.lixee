@@ -85,8 +85,6 @@ class Device extends ZigBeeDevice {
                 'tomorrowColor'
               ]);
 
-            await self.setCapabilityValue('debug_capability', tomorrowColor);
-
             const {
               clockFullHourEmptyHour,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
@@ -177,25 +175,6 @@ class Device extends ZigBeeDevice {
             await self.setCapabilityValue('maximal_intensity_capability', maximalIntensity);
 
             self.log(`Cluster electrical measurement return response correctly`);
-
-            try {
-              if (HomeyModule.env.HOMEY_LOG_FORCE === 1) {
-                self.homeyLog = new Log({ homey: self.homey });
-                self.homeyLog.setTags(self.getState());
-                const today = new Date().toISOString()
-                  .split('T')[0];
-                if (lastLogDate !== today) {
-                  let modeCapability = self.hasCapability('mode_capability') ? self.getCapabilityValue('mode_capability') : 'unknown';
-                  self.homeyLog.captureMessage(modeCapability);
-                  lastLogDate = today;
-                          }
-                        } else {
-                          this.log(`Sentry log is disable`);
-              }
-            } catch (e) {
-              self.log(`Cannot send log to sentry`);
-            }
-
           } catch (e) {
             self.log(`Something wrong with zigbee cluster and message : ${e.message}, app will retry later `);
           }
@@ -207,6 +186,7 @@ class Device extends ZigBeeDevice {
               currentSummationDelivered,
               currentSummationDeliveredHCHC,
               currentSummationDeliveredHCHP,
+              activeEnergyTotalInjected,
               serialNumber,
               pricePeriod
             } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.METERING)]
@@ -221,15 +201,14 @@ class Device extends ZigBeeDevice {
 
             await self.setCapabilityValue('serial_number_capability', serialNumber);
 
-
-            if (self.getCapabilityValue('mode_capability') === 'historique') {
+            // if (self.getCapabilityValue('mode_capability') === 'historique') {
               if (currentSummationDelivered != 0) {
                 if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
                   await self.setCapabilityValue('price_period_capability', 'TH..');
                   await self.setCapabilityValue('price_option_capability', 'BASE');
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
-                  await self.setCapabilityValue('meter_power.exported', 0);
+                  await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
                 }
               }
 
@@ -244,7 +223,7 @@ class Device extends ZigBeeDevice {
                 await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
                 await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHP);
                 await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHP);
-                await self.setCapabilityValue('meter_power.exported', 0);
+                await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
               }
 
               self.log(currentSummationDeliveredHCHC);
@@ -258,7 +237,7 @@ class Device extends ZigBeeDevice {
                 await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
                 await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHC);
                 await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHC);
-                await self.setCapabilityValue('meter_power.exported', 0);
+                await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
               }
 
               switch (self.getCapabilityValue('price_option_capability')) {
@@ -266,42 +245,42 @@ class Device extends ZigBeeDevice {
                 case 'BBR':
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
-                  await self.setCapabilityValue('meter_power.exported', 0);
+                  await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
                   break;
               }
-            } else {
-              if (['TH..', 'HC..', 'HP..', 'HN..', 'PM..', 'HCJB', 'HCJW', 'HCJR', 'HPJB', 'HPJW', 'HPJR'].includes(pricePeriod) == false) {
-                pricePeriod = 'UNKN';
-              }
-
-              await self.setCapabilityValue('price_period_capability', pricePeriod);
-
-              self.log(self.getCapabilityValue('price_option_capability'));
-              switch (self.getCapabilityValue('price_option_capability')) {
-                case 'BASE':
-                  await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
-                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
-                  await self.setCapabilityValue('meter_power.exported', 0);
-                  break;
-                case 'HC..':
-                  if (currentSummationDeliveredHCHP > 0) {
-                    await self.setCapabilityValue('meter_power', (currentSummationDeliveredHCHP / 1000));
-                    await self.setCapabilityValue('meter_power.imported', (currentSummationDeliveredHCHP / 1000));
-                    await self.setCapabilityValue('meter_power.exported', 0);
-                  } else {
-                    await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
-                    await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
-                    await self.setCapabilityValue('meter_power.exported', 0);
-                  }
-                  break;
-                case 'EJP.':
-                case 'BBR':
-                  await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
-                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
-                  await self.setCapabilityValue('meter_power.exported', 0);
-                  break;
-              }
-            }
+            // } else {
+            //   if (['TH..', 'HC..', 'HP..', 'HN..', 'PM..', 'HCJB', 'HCJW', 'HCJR', 'HPJB', 'HPJW', 'HPJR'].includes(pricePeriod) == false) {
+            //     pricePeriod = 'UNKN';
+            //   }
+            //
+            //   await self.setCapabilityValue('price_period_capability', pricePeriod);
+            //
+            //   self.log(self.getCapabilityValue('price_option_capability'));
+            //   switch (self.getCapabilityValue('price_option_capability')) {
+            //     case 'BASE':
+            //       await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+            //       await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
+            //       await self.setCapabilityValue('meter_power.exported', 0);
+            //       break;
+            //     case 'HC..':
+            //       if (currentSummationDeliveredHCHP > 0) {
+            //         await self.setCapabilityValue('meter_power', (currentSummationDeliveredHCHP / 1000));
+            //         await self.setCapabilityValue('meter_power.imported', (currentSummationDeliveredHCHP / 1000));
+            //         await self.setCapabilityValue('meter_power.exported', 0);
+            //       } else {
+            //         await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+            //         await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
+            //         await self.setCapabilityValue('meter_power.exported', 0);
+            //       }
+            //       break;
+            //     case 'EJP.':
+            //     case 'BBR':
+            //       await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+            //       await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
+            //       await self.setCapabilityValue('meter_power.exported', 0);
+            //       break;
+            //   }
+            // }
 
             self.log(`Cluster metering return response correctly`);
           } catch (e) {
@@ -317,8 +296,6 @@ class Device extends ZigBeeDevice {
   }
 
   async prepareCapabilities() {
-    await this.removeCapability('debug_capability')
-      .catch(this.error);
     await this.removeCapability('clock_full_hour_empty_hour_capability')
       .catch(this.error);
     await this.removeCapability('serial_number_capability')
@@ -375,8 +352,30 @@ class Device extends ZigBeeDevice {
       ]);
   }
 
+  decodeMode(modeInt) {
+    // Maps numeric mode (enum8/uint8) to ['mode', 'phase', 'producteur?']
+    // 0: historique_monophase
+    // 1: standard_monophase
+    // 2: historique_triphase
+    // 3: standard_triphase
+    // 5: historique_triphase_producteur
+    // 7: standard_triphase_producteur
+    switch (modeInt) {
+      case 0: return ['historique', 'monophase'];
+      case 1: return ['standard', 'monophase'];
+      case 2: return ['historique', 'triphase'];
+      case 3: return ['standard', 'triphase'];
+      case 5: return ['historique', 'triphase', 'producteur'];
+      case 7: return ['standard', 'triphase', 'producteur'];
+      default:
+        this.log(`Unknown mode value for 0x0300: ${modeInt} — defaulting to historique_monophase`);
+        return ['historique', 'monophase'];
+    }
+  }
+
   async prepareMode(currentMode) {
-    let explodedMode = currentMode.mode.split('_');
+    const explodedMode = this.decodeMode(currentMode.mode);
+
     await this.removeCapability('meter_power.imported').catch(this.error);
 
     await this.addCapability('meter_power.imported').catch(this.error)
@@ -431,6 +430,10 @@ class Device extends ZigBeeDevice {
             await this.removeCapability('produce_capability').catch(this.error);
             await this.addCapability('produce_capability');
             await this.setCapabilityValue('produce_capability', explodedMode[2] !== undefined);
+
+            await this.removeCapability('debug_capability').catch(this.error);
+            await this.addCapability('debug_capability').catch(this.error);
+            await this.setCapabilityValue('debug_capability', String(currentMode.mode));
           });
       });
   }

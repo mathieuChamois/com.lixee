@@ -714,4 +714,32 @@ Device.prototype._extractTomorrowFromRegister = function(reg) {
   }
 };
 
+// Met à jour l'option tarifaire si elle change, avec normalisation et déclenchement du Flow
+// - Normalise: 'BBRx' -> 'BBR'
+// - Valide contre la liste autorisée
+// - Déclenche le trigger Flow 'price_option_became' si changement
+Device.prototype._updatePriceOptionIfChanged = async function(newValue) {
+  try {
+    if (!this.hasCapability('price_option_capability')) return;
+    if (!newValue) return;
+
+    // normalisation minimale
+    let val = newValue;
+    if (val === 'BBRx') val = 'BBR';
+    const VALID = ['BASE', 'HC..', 'HPHC', 'EJP.', 'BBR', 'UNKN'];
+    if (!VALID.includes(val)) val = 'UNKN';
+
+    const prev = this.getCapabilityValue('price_option_capability');
+    if (prev !== val) {
+      await this.setCapabilityValue('price_option_capability', val);
+      if (this._priceOptionBecameCard) {
+        await this._priceOptionBecameCard.trigger(this, { target: val }, { target: val });
+        this.log(`Flow trigger 'price_option_became' fired (target=${val})`);
+      }
+    }
+  } catch (e) {
+    this.error(`update price_option_capability failed: ${e && e.message ? e.message : e}`);
+  }
+};
+
 module.exports = Device;

@@ -130,5 +130,8 @@
   },
   "1.3.4": {
     "en": "add card price option and period price and normalize DEMAIN"
+  },
+  "1.3.5": {
+    "en": "Add DEMAIN for standard"
   }
 }

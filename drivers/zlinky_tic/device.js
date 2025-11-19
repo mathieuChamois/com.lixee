@@ -284,6 +284,15 @@ class Device extends ZigBeeDevice {
                   ]);
                 tomorrowRaw = registerStatus;
                 normTomorrow = self._extractTomorrowFromRegister(registerStatus);
+                // Met à jour la debug_capability avec la valeur entière (décimale) de registerStatus
+                try {
+                  const regDec = self._parseRegisterToUint32(registerStatus);
+                  if (regDec !== null && self.hasCapability('debug_capability')) {
+                    await self.setCapabilityValue('debug_capability', String(regDec));
+                  }
+                } catch (eDebug) {
+                  self.log && self.log(`[DEBUG] Impossible de convertir registerStatus en entier: ${eDebug && eDebug.message ? eDebug.message : eDebug}`);
+                }
               } catch (e) {
                 // Repli: tenter la lecture de tomorrowColor texte si disponible
                 try {
@@ -697,6 +706,31 @@ class Device extends ZigBeeDevice {
 }
 
 // Helpers
+// Convertit une valeur de registre (number/hex/string) en entier non signé 32 bits
+// Retourne un number (0..0xFFFFFFFF) ou null si non parsable
+Device.prototype._parseRegisterToUint32 = function(reg) {
+  try {
+    if (reg === null || reg === undefined) return null;
+    if (typeof reg === 'number') return (reg >>> 0);
+    let s = String(reg).replace(/\u0000/g, '').trim();
+    if (s === '') return null;
+    // Retire tout ce qui n'est pas chiffre/hex ou préfixe 0x
+    s = s.replace(/[^0-9a-fA-Fx]/g, '');
+    let v;
+    if (/^0x/i.test(s)) {
+      v = parseInt(s, 16);
+    } else if (/[a-fA-F]/.test(s)) {
+      v = parseInt(s, 16);
+    } else {
+      v = parseInt(s, 10);
+    }
+    if (Number.isNaN(v)) return null;
+    return (v >>> 0);
+  } catch (e) {
+    this.error && this.error(`_parseRegisterToUint32 error: ${e && e.message ? e.message : e}`);
+    return null;
+  }
+};
 // Normalise la valeur texte de la couleur de demain (mode historique/Tempo)
 // Retourne l'une des valeurs: '----', 'BLEU', 'BLAN', 'ROUG'
 Device.prototype._normalizeTomorrowColor = function(raw) {

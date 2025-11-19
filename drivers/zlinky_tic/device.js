@@ -267,7 +267,9 @@ class Device extends ZigBeeDevice {
               ]);
 
             let tomorrowRaw = null;
-            let normTomorrow = '----';
+            // En mode standard, on n'actualise la couleur que si registerStatus est lu avec succès
+            // Laisser à null pour ne pas écraser l'ancienne valeur en cas d'échec
+            let normTomorrow = null;
             if (self.getCapabilityValue('mode_capability') === 'standard') {
               if (['BASE', 'HC..', 'EJP.', 'BBR'].includes(priceOption) == false) {
                 priceOption = 'BBR';
@@ -294,19 +296,8 @@ class Device extends ZigBeeDevice {
                   self.log && self.log(`[DEBUG] Impossible de convertir registerStatus en entier: ${eDebug && eDebug.message ? eDebug.message : eDebug}`);
                 }
               } catch (e) {
-                // Repli: tenter la lecture de tomorrowColor texte si disponible
-                try {
-                  const { tomorrowColor } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
-                    .clusters[LixeePrivateCluster.NAME]
-                    .readAttributes([
-                      'tomorrowColor'
-                    ]);
-                  tomorrowRaw = tomorrowColor;
-                  normTomorrow = self._normalizeTomorrowColor(tomorrowColor);
-                  self.log(`[WARN] registerStatus read failed, fallback to tomorrowColor: ${e && e.message ? e.message : e}`);
-                } catch (e2) {
-                  self.log(`[WARN] Both registerStatus and tomorrowColor reads failed: ${e2 && e2.message ? e2.message : e2}`);
-                }
+                // Plus de fallback en mode standard: on log l'erreur et on n'écrase pas la valeur courante
+                self.log(`[WARN] registerStatus read failed (standard mode, no fallback): ${e && e.message ? e.message : e}`);
               }
               await self.setCapabilityValue('apparent_power_instant_inject_capability', apparentPowerInstInject);
             } else {
@@ -325,10 +316,13 @@ class Device extends ZigBeeDevice {
             }
 
             await self.setCapabilityValue('clock_full_hour_empty_hour_capability', clockFullHourEmptyHour);
-            if (self.getCapabilityValue('tomorrow_color_capability') !== normTomorrow) {
-              self.log(`[TOMORROW] Raw='${tomorrowRaw}' -> Normalized='${normTomorrow}'`);
+            // N'actualise la capability que si on a une valeur normalisée valide
+            if (normTomorrow !== null) {
+              if (self.getCapabilityValue('tomorrow_color_capability') !== normTomorrow) {
+                self.log(`[TOMORROW] Raw='${tomorrowRaw}' -> Normalized='${normTomorrow}'`);
+              }
+              await self.setCapabilityValue('tomorrow_color_capability', normTomorrow);
             }
-            await self.setCapabilityValue('tomorrow_color_capability', normTomorrow);
             await self.setCapabilityValue('alarm_subscribe_power_capability', subscribePowerAlert !== 0);
 
             self.log(`Cluster lixee private return response correctly`);

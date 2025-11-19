@@ -196,14 +196,6 @@ class Device extends ZigBeeDevice {
         // Mémorise la dernière période connue
         self._lastPeriod = self.getCapabilityValue('price_period_capability');
 
-        // Etat pour anti-rebond sur la période détectée
-        // On ne valide une nouvelle période que si elle est observée n fois de suite
-        self._periodDebounce = {
-          candidate: null,
-          count: 0,
-          required: 2, // nombre de confirmations nécessaires (2 lectures consécutives)
-        };
-
         // Helper: met à jour la capability de période et déclenche le Flow si elle change
         self._updatePeriodIfChanged = async (newValue) => {
           try {
@@ -336,12 +328,14 @@ class Device extends ZigBeeDevice {
           }
         }, 10000);
 
-        // Rafraîchissement périodique: met à jour la couleur de demain toutes les minutes
+        // Rafraîchit uniquement la couleur de demain toutes les 10 secondes
         setInterval(async () => {
           try {
             let tomorrowRaw = null;
             let normTomorrow = '----';
+
             if (self.getCapabilityValue('mode_capability') === 'standard') {
+              // Mode standard: priorité à registerStatus (bits 24-25), repli sur tomorrowColor texte
               try {
                 const { registerStatus } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
                   .clusters[LixeePrivateCluster.NAME]
@@ -360,10 +354,11 @@ class Device extends ZigBeeDevice {
                   tomorrowRaw = tomorrowColor;
                   normTomorrow = self._normalizeTomorrowColor(tomorrowColor);
                 } catch (e2) {
-                  // ignore dans la boucle minute si non disponible
+                  self.log(`[TOMORROW] refresh read failed: ${e2 && e2.message ? e2.message : e2}`);
                 }
               }
             } else {
+              // Mode historique/Tempo: lecture tomorrowColor texte
               try {
                 const { tomorrowColor } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
                   .clusters[LixeePrivateCluster.NAME]
@@ -373,21 +368,21 @@ class Device extends ZigBeeDevice {
                 tomorrowRaw = tomorrowColor;
                 normTomorrow = self._normalizeTomorrowColor(tomorrowColor);
               } catch (e) {
-                // ignore dans la boucle minute si non disponible
+                self.log(`[TOMORROW] refresh tomorrowColor read failed (historique): ${e && e.message ? e.message : e}`);
               }
             }
 
             if (normTomorrow) {
-              const prev = self.getCapabilityValue('tomorrow_color_capability');
-              if (prev !== normTomorrow) {
-                self.log(`[TOMORROW] Raw='${tomorrowRaw}' -> Normalized='${normTomorrow}' (periodic)`);
-                await self.setCapabilityValue('tomorrow_color_capability', normTomorrow);
+              const current = self.getCapabilityValue('tomorrow_color_capability');
+              if (current !== normTomorrow) {
+                self.log(`[TOMORROW] (refresh) Raw='${tomorrowRaw}' -> Normalized='${normTomorrow}'`);
               }
+              await self.setCapabilityValue('tomorrow_color_capability', normTomorrow);
             }
           } catch (e) {
-            // éviter de spammer les logs sur erreurs transitoires
+            self.log(`[TOMORROW] refresh error: ${e && e.message ? e.message : e}`);
           }
-        }, 60 * 1000);
+        }, 10000);
 
         setInterval(async () => {
           try {
@@ -478,15 +473,20 @@ class Device extends ZigBeeDevice {
 
             await self.setCapabilityValue('serial_number_capability', serialNumber);
 
-            // Détermination de la période détectée sans effet de bord,
-            // puis application en une seule fois avec anti-rebond.
-            let detectedPeriod = null;
+            if (currentSummationDelivered != 0) {
+              if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
+                await self._updatePeriodIfChanged('TH..');
+                await self._updatePriceOptionIfChanged('BASE');
+                await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
+                await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
+              }
+            }
 
-            // Mise à jour des index et détection HP/HC si variation
             if (currentSummationDeliveredHCHP != hpLastValue) {
               hpLastValue = currentSummationDeliveredHCHP;
               currentSummationDeliveredHCHP = Math.floor((currentSummationDeliveredHCHP ?? 0) / 1000);
-              detectedPeriod = 'HP..';
+              await self._updatePeriodIfChanged('HP..');
               await self.setCapabilityValue('price_option_capability', 'HPHC');
               await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
               await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHP);
@@ -497,47 +497,12 @@ class Device extends ZigBeeDevice {
             if (currentSummationDeliveredHCHC != hcLastValue) {
               hcLastValue = currentSummationDeliveredHCHC;
               currentSummationDeliveredHCHC = Math.floor((currentSummationDeliveredHCHC ?? 0) / 1000);
-              detectedPeriod = 'HC..';
+              await self._updatePeriodIfChanged('HC..');
               await self.setCapabilityValue('price_option_capability', 'HPHC');
               await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
               await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHC);
               await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHC);
               await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
-            }
-
-            // Si aucun sous-index HPHC n'a bougé, alors on est peut-être en BASE / autre option
-            if (!detectedPeriod) {
-              const isHPHC = self.getCapabilityValue('price_option_capability') === 'HPHC';
-              if (!isHPHC && currentSummationDelivered != 0) {
-                if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
-                  detectedPeriod = 'TH..';
-                  await self._updatePriceOptionIfChanged('BASE');
-                  await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
-                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
-                  await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
-                }
-              }
-            }
-
-            // Anti-rebond: on n’applique la période que si confirmée required fois de suite
-            if (detectedPeriod) {
-              if (self._periodDebounce.candidate !== detectedPeriod) {
-                self._periodDebounce.candidate = detectedPeriod;
-                self._periodDebounce.count = 1;
-              } else {
-                self._periodDebounce.count += 1;
-              }
-
-              if (self._periodDebounce.count >= self._periodDebounce.required) {
-                await self._updatePeriodIfChanged(detectedPeriod);
-                // reset pour détecter un prochain changement
-                self._periodDebounce.candidate = null;
-                self._periodDebounce.count = 0;
-              }
-            } else {
-              // Pas de nouvelle détection sur ce cycle → on ne change rien
-              self._periodDebounce.candidate = null;
-              self._periodDebounce.count = 0;
             }
 
             switch (self.getCapabilityValue('price_option_capability')) {

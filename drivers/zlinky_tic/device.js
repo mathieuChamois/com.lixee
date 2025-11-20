@@ -270,13 +270,11 @@ class Device extends ZigBeeDevice {
             // En mode standard, on n'actualise la couleur que si registerStatus est lu avec succès
             // Laisser à null pour ne pas écraser l'ancienne valeur en cas d'échec
             let normTomorrow = null;
-            if (self.getCapabilityValue('mode_capability') === 'standard') {
-              if (['BASE', 'HC..', 'EJP.', 'BBR'].includes(priceOption) == false) {
-                priceOption = 'BBR';
-              }
 
-              // On continue à mettre à jour la capability d'option tarifaire pour compatibilité existante
-              await self._updatePriceOptionIfChanged(priceOption);
+            // On continue à mettre à jour la capability d'option tarifaire pour compatibilité existante
+            await self._updatePriceOptionIfChanged(priceOption);
+
+            if (self.getCapabilityValue('mode_capability') === 'standard') {
               // lecture et décodage de la couleur de demain via registerStatus (bits 24-25)
               try {
                 const { registerStatus } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
@@ -288,14 +286,6 @@ class Device extends ZigBeeDevice {
                 // Parse en entier non signé avant l'extraction de la couleur
                 let regDec = self._parseRegisterToUint32(registerStatus);
                 normTomorrow = self._extractTomorrowFromRegister(regDec);
-                // Met à jour la debug_capability avec la valeur entière (décimale) de registerStatus
-                try {
-                  if (regDec !== null && self.hasCapability('debug_capability')) {
-                    await self.setCapabilityValue('debug_capability', String(regDec));
-                  }
-                } catch (eDebug) {
-                  self.log && self.log(`[DEBUG] Impossible de convertir registerStatus en entier: ${eDebug && eDebug.message ? eDebug.message : eDebug}`);
-                }
               } catch (e) {
                 // Plus de fallback en mode standard: on log l'erreur et on n'écrase pas la valeur courante
                 self.log(`[WARN] registerStatus read failed (standard mode, no fallback): ${e && e.message ? e.message : e}`);
@@ -470,9 +460,9 @@ class Device extends ZigBeeDevice {
 
             await self.setCapabilityValue('serial_number_capability', serialNumber);
 
-            if (currentSummationDelivered != 0) {
+            if (currentSummationDelivered != 0 && self.getCapabilityValue('price_option_capability') !== 'BBR') {
               if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
-                await self._updatePeriodIfChanged(pricePeriod);
+                await self._updatePeriodIfChanged('TH..');
                 await self._updatePriceOptionIfChanged('BASE');
                 await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                 await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));

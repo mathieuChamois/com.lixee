@@ -472,7 +472,7 @@ class Device extends ZigBeeDevice {
 
             if (currentSummationDelivered != 0) {
               if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
-                await self._updatePeriodIfChanged('TH..');
+                await self._updatePeriodIfChanged(pricePeriod);
                 await self._updatePriceOptionIfChanged('BASE');
                 await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                 await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));

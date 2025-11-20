@@ -148,5 +148,8 @@
   },
   "1.3.10": {
     "en": "change bits for DEMAIN"
+  },
+  "1.3.11": {
+    "en": "use periodPrice instead of hard code"
   }
 }

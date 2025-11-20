@@ -285,10 +285,11 @@ class Device extends ZigBeeDevice {
                     'registerStatus'
                   ]);
                 tomorrowRaw = registerStatus;
-                normTomorrow = self._extractTomorrowFromRegister(registerStatus);
+                // Parse en entier non signé avant l'extraction de la couleur
+                let regDec = self._parseRegisterToUint32(registerStatus);
+                normTomorrow = self._extractTomorrowFromRegister(regDec);
                 // Met à jour la debug_capability avec la valeur entière (décimale) de registerStatus
                 try {
-                  const regDec = self._parseRegisterToUint32(registerStatus);
                   if (regDec !== null && self.hasCapability('debug_capability')) {
                     await self.setCapabilityValue('debug_capability', String(regDec));
                   }
@@ -335,10 +336,11 @@ class Device extends ZigBeeDevice {
         setInterval(async () => {
           try {
             let tomorrowRaw = null;
-            let normTomorrow = '----';
+            // Ne pas écraser la dernière valeur si on n'a pas une couleur valide
+            let normTomorrow = null;
 
             if (self.getCapabilityValue('mode_capability') === 'standard') {
-              // Mode standard: priorité à registerStatus (bits 24-25), repli sur tomorrowColor texte
+              // Mode standard: lecture de registerStatus, parsing en uint32, puis extraction de la couleur DEMAIN (bits 26-27)
               try {
                 const { registerStatus } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
                   .clusters[LixeePrivateCluster.NAME]
@@ -346,19 +348,11 @@ class Device extends ZigBeeDevice {
                     'registerStatus'
                   ]);
                 tomorrowRaw = registerStatus;
-                normTomorrow = self._extractTomorrowFromRegister(registerStatus);
+                const regDec = self._parseRegisterToUint32(registerStatus);
+                normTomorrow = self._extractTomorrowFromRegister(regDec);
               } catch (e) {
-                try {
-                  const { tomorrowColor } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
-                    .clusters[LixeePrivateCluster.NAME]
-                    .readAttributes([
-                      'tomorrowColor'
-                    ]);
-                  tomorrowRaw = tomorrowColor;
-                  normTomorrow = self._normalizeTomorrowColor(tomorrowColor);
-                } catch (e2) {
-                  self.log(`[TOMORROW] refresh read failed: ${e2 && e2.message ? e2.message : e2}`);
-                }
+                // Pas de fallback en mode standard
+                self.log(`[TOMORROW] refresh registerStatus read failed (standard mode, no fallback): ${e && e.message ? e.message : e}`);
               }
             } else {
               // Mode historique/Tempo: lecture tomorrowColor texte
@@ -375,7 +369,7 @@ class Device extends ZigBeeDevice {
               }
             }
 
-            if (normTomorrow) {
+            if (normTomorrow !== null) {
               const current = self.getCapabilityValue('tomorrow_color_capability');
               if (current !== normTomorrow) {
                 self.log(`[TOMORROW] (refresh) Raw='${tomorrowRaw}' -> Normalized='${normTomorrow}'`);
@@ -752,55 +746,32 @@ Device.prototype._normalizeTomorrowColor = function(raw) {
   }
 };
 
-// Extrait la couleur de demain (mode standard) depuis le registre de statuts fichier (section 6.2.3.14)
-// Bits 24 (LSB) et 25 (MSB) codent:
-// 0 = Pas d'annonce, 1 = Bleu, 2 = Blanc, 3 = Rouge
+// Extrait la couleur de DEMAIN (mode standard) depuis registerStatus (uint32)
+// Spécification fournie: bits 26 (LSB) et 27 (MSB)
+// Mapping: 0=Pas d'annonce, 1=BLEU, 2=BLAN, 3=ROUG
+// Retourne: 'BLEU' | 'BLAN' | 'ROUG' ou null si indéterminé (pour ne pas écraser l’ancienne valeur)
 Device.prototype._extractTomorrowFromRegister = function(reg) {
   try {
-    if (reg === null || reg === undefined) return '----';
+    if (reg === null || reg === undefined) return null;
+    // On attend désormais un entier (uint32). S'il arrive au format autre, on tente un parse minimal.
+    let v = (typeof reg === 'number') ? (reg >>> 0) : this._parseRegisterToUint32(reg);
+    if (v === null) return null;
 
-    let v;
-    if (typeof reg === 'number') {
-      v = reg >>> 0; // force non signé 32 bits
-    } else {
-      let s = String(reg).replace(/\u0000/g, '').trim();
-      if (s === '') return '----';
-      // Supprimer éventuels préfixes ou séparateurs
-      s = s.replace(/[^0-9a-fA-Fx]/g, '');
-      if (/^0x/i.test(s)) {
-        v = parseInt(s, 16) >>> 0;
-      } else if (/[a-fA-F]/.test(s)) {
-        v = parseInt(s, 16) >>> 0;
-      } else {
-        // décimal par défaut
-        const tmp = parseInt(s, 10);
-        if (Number.isNaN(tmp)) return '----';
-        v = tmp >>> 0;
-      }
-    }
+    const decodeFrom = (val) => ((val >>> 26) & 0x03);
 
-    // Essai 1: bits 24-25 (spécification standard)
-    let code = (v >>> 24) & 0x03;
-    // Essai 2: si non concluant, tester bits 0-1 (certains firmwares placent l'info en LSB)
+    let code = decodeFrom(v);
+    // Heuristique endianness: certains firmwares renvoient les octets inversés
     if (code === 0) {
-      const alt0 = v & 0x03;
-      if (alt0 >= 1 && alt0 <= 3) {
-        this.log && this.log(`[TOMORROW] registerStatus fallback to LSB bits (0-1), value=${alt0} from 0x${v.toString(16)}`);
-        code = alt0;
-      }
-    }
-    // Essai 3: à défaut, tester bits 16-17
-    if (code === 0) {
-      const alt16 = (v >>> 16) & 0x03;
-      if (alt16 >= 1 && alt16 <= 3) {
-        this.log && this.log(`[TOMORROW] registerStatus fallback to bits 16-17, value=${alt16} from 0x${v.toString(16)}`);
-        code = alt16;
+      const swapped = (((v & 0x000000FF) << 24) | ((v & 0x0000FF00) << 8) | ((v & 0x00FF0000) >>> 8) | ((v & 0xFF000000) >>> 24)) >>> 0;
+      const alt = decodeFrom(swapped);
+      if (alt !== 0) {
+        this.log && this.log(`[TOMORROW] using swapped bytes for bits 26-27: code=${alt} from 0x${v.toString(16)}`);
+        code = alt;
       }
     }
 
+    if (code === 0) return null; // pas d'annonce ou indéterminé
     switch (code) {
-      case 0:
-        return '----'; // Pas d'annonce
       case 1:
         return 'BLEU';
       case 2:
@@ -808,11 +779,11 @@ Device.prototype._extractTomorrowFromRegister = function(reg) {
       case 3:
         return 'ROUG';
       default:
-        return '----';
+        return null;
     }
   } catch (e) {
     this.error(`_extractTomorrowFromRegister error: ${e && e.message ? e.message : e}`);
-    return '----';
+    return null;
   }
 };
 

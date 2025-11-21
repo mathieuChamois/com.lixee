@@ -469,7 +469,6 @@ class Device extends ZigBeeDevice {
             if (currentSummationDelivered != 0 && (self.getCapabilityValue('price_option_capability') !== 'BBR' || self.getCapabilityValue('price_option_capability') !== 'BBRx')) {
               if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
                 await self._updatePeriodIfChanged('TH..');
-                await self._updatePriceOptionIfChanged('BASE');
                 await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                 await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
                 await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);

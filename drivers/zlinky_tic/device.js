@@ -242,6 +242,12 @@ class Device extends ZigBeeDevice {
                 'priceOption'
               ]);
 
+            // Si priceOption est vide/indéfini, on ignore cet intervalle et on attend le prochain
+            if (priceOption === undefined || priceOption === null || priceOption === '') {
+              self.log('[INFO] priceOption vide, on attend la prochaine fenêtre de rafraîchissement');
+              return;
+            }
+
             const {
               subscribePowerAlert,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
@@ -460,7 +466,7 @@ class Device extends ZigBeeDevice {
 
             await self.setCapabilityValue('serial_number_capability', serialNumber);
 
-            if (currentSummationDelivered != 0 && self.getCapabilityValue('price_option_capability') !== 'BBR') {
+            if (currentSummationDelivered != 0 && (self.getCapabilityValue('price_option_capability') !== 'BBR' || self.getCapabilityValue('price_option_capability') !== 'BBRx')) {
               if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
                 await self._updatePeriodIfChanged('TH..');
                 await self._updatePriceOptionIfChanged('BASE');

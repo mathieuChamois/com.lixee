@@ -480,7 +480,6 @@ class Device extends ZigBeeDevice {
               hpLastValue = currentSummationDeliveredHCHP;
               currentSummationDeliveredHCHP = Math.floor((currentSummationDeliveredHCHP ?? 0) / 1000);
               await self._updatePeriodIfChanged('HP..');
-              await self.setCapabilityValue('price_option_capability', 'HPHC');
               await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
               await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHP);
               await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHP);
@@ -491,7 +490,6 @@ class Device extends ZigBeeDevice {
               hcLastValue = currentSummationDeliveredHCHC;
               currentSummationDeliveredHCHC = Math.floor((currentSummationDeliveredHCHC ?? 0) / 1000);
               await self._updatePeriodIfChanged('HC..');
-              await self.setCapabilityValue('price_option_capability', 'HPHC');
               await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
               await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHC);
               await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHC);

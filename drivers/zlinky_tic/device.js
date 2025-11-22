@@ -290,6 +290,7 @@ class Device extends ZigBeeDevice {
             // En mode standard, on n'actualise la couleur que si registerStatus est lu avec succès
             // Laisser à null pour ne pas écraser l'ancienne valeur en cas d'échec
             let normTomorrow = null;
+            let normToday = null;
 
             // On continue à mettre à jour la capability d'option tarifaire pour compatibilité existante
             await self._updatePriceOptionIfChanged(priceOption);
@@ -306,6 +307,18 @@ class Device extends ZigBeeDevice {
                 // Parse en entier non signé avant l'extraction de la couleur
                 let regDec = self._parseRegisterToUint32(registerStatus);
                 normTomorrow = self._extractTomorrowFromRegister(regDec);
+                normToday = self._extractTodayFromRegister(regDec);
+
+                try {
+                  const todayStr = normToday ?? '----';
+                  const tomorrowStr = normTomorrow ?? '----';
+                  const debugValue = `${regDec} - ${todayStr} | ${tomorrowStr}`;
+                  if (self.hasCapability('debug_capability') && self.getCapabilityValue('debug_capability') !== debugValue) {
+                    await self.setCapabilityValue('debug_capability', debugValue);
+                  }
+                } catch (e) {
+                  self.log(`[DEBUG CAP] set failed: ${e && e.message ? e.message : e}`);
+                }
               } catch (e) {
                 // Plus de fallback en mode standard: on log l'erreur et on n'écrase pas la valeur courante
                 self.log(`[WARN] registerStatus read failed (standard mode, no fallback): ${e && e.message ? e.message : e}`);
@@ -348,6 +361,7 @@ class Device extends ZigBeeDevice {
             let tomorrowRaw = null;
             // Ne pas écraser la dernière valeur si on n'a pas une couleur valide
             let normTomorrow = null;
+            let normToday = null;
 
             if (self.getCapabilityValue('mode_capability') === 'standard') {
               // Mode standard: lecture de registerStatus, parsing en uint32, puis extraction de la couleur DEMAIN (bits 26-27)
@@ -790,6 +804,39 @@ Device.prototype._extractTomorrowFromRegister = function(reg) {
     }
   } catch (e) {
     this.error(`_extractTomorrowFromRegister error: ${e && e.message ? e.message : e}`);
+    return null;
+  }
+};
+
+// Extrait la couleur d’AUJOURD’HUI (bits 24-25) — 0=Pas d’annonce, 1=BLEU, 2=BLAN, 3=ROUG
+Device.prototype._extractTodayFromRegister = function(reg) {
+  try {
+    if (reg === null || reg === undefined) return null;
+    let v = (typeof reg === 'number') ? (reg >>> 0) : this._parseRegisterToUint32(reg);
+    if (v === null) return null;
+
+    const decodeFrom = (val) => ((val >>> 24) & 0x03);
+
+    let code = decodeFrom(v);
+    // Mêmes précautions d’endianess
+    if (code === 0) {
+      const swapped = (((v & 0x000000FF) << 24) | ((v & 0x0000FF00) << 8) | ((v & 0x00FF0000) >>> 8) | ((v & 0xFF000000) >>> 24)) >>> 0;
+      const alt = decodeFrom(swapped);
+      if (alt !== 0) {
+        this.log && this.log(`[TODAY] using swapped bytes for bits 24-25: code=${alt} from 0x${v.toString(16)}`);
+        code = alt;
+      }
+    }
+
+    if (code === 0) return null;
+    switch (code) {
+      case 1: return 'BLEU';
+      case 2: return 'BLAN';
+      case 3: return 'ROUG';
+      default: return null;
+    }
+  } catch (e) {
+    this.error(`_extractTodayFromRegister error: ${e && e.message ? e.message : e}`);
     return null;
   }
 };

@@ -195,15 +195,29 @@ class Device extends ZigBeeDevice {
 
         // Mémorise la dernière période connue
         self._lastPeriod = self.getCapabilityValue('price_period_capability');
+        // Timestamp du dernier changement de période effectivement appliqué (en ms, Date.now())
+        self._lastPeriodChangeTs = 0;
 
         // Helper: met à jour la capability de période et déclenche le Flow si elle change
+        // Ajout d'un verrou temporel de 20 secondes pour éviter les bascules multiples HP/HC
         self._updatePeriodIfChanged = async (newValue) => {
           try {
             if (!newValue) return;
             const prev = self._lastPeriod;
             if (prev !== newValue) {
+              const now = Date.now();
+              const lastChange = self._lastPeriodChangeTs || 0;
+              const delta = now - lastChange;
+
+              // Si le dernier changement effectif date de moins de 20s, on ignore ce nouveau changement
+              if (delta < 20000) {
+                self.log(`[PERIOD] Changement ignoré (${prev} -> ${newValue}) car dernier changement il y a ${Math.round(delta / 1000)}s (<20s)`);
+                return;
+              }
+
               await self.setCapabilityValue('price_period_capability', newValue);
               self._lastPeriod = newValue;
+              self._lastPeriodChangeTs = now;
               if (self._periodOptionBecameCard) {
                 await self._periodOptionBecameCard.trigger(self, { target: newValue }, { target: newValue });
                 self.log(`Flow trigger 'period_option_became' fired (target=${newValue})`);

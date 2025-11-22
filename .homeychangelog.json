@@ -157,5 +157,8 @@
   },
   "1.3.13": {
     "en": "use price option from zlinky"
+  },
+  "1.3.14": {
+    "en": "lock period price for 20s after a change"
   }
 }

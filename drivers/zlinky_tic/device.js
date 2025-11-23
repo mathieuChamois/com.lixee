@@ -312,7 +312,7 @@ class Device extends ZigBeeDevice {
                 try {
                   const todayStr = normToday ?? '----';
                   const tomorrowStr = normTomorrow ?? '----';
-                  const debugValue = `${priceOption} - ${registerStatus} - ${regDec} - ${todayStr} | ${tomorrowStr}`;
+                  const debugValue = `${priceOption} - ${tomorrowRaw} - ${regDec} - ${todayStr} | ${tomorrowStr}`;
                   if (self.hasCapability('debug_capability') && self.getCapabilityValue('debug_capability') !== debugValue) {
                     await self.setCapabilityValue('debug_capability', debugValue);
                   }
@@ -494,7 +494,15 @@ class Device extends ZigBeeDevice {
 
             await self.setCapabilityValue('serial_number_capability', serialNumber);
 
-            await self.setCapabilityValue('debug_capability', self.getCapabilityValue('debug_capability') + ' - ' + pricePeriod);
+            // Ajoute pricePeriod à debug_capability seulement s'il n'est pas déjà présent
+            if (self.hasCapability('debug_capability')) {
+              const current = (self.getCapabilityValue('debug_capability') || '').toString();
+              const part = ` - ${pricePeriod}`;
+              if (!current.includes(part)) {
+                await self.setCapabilityValue('debug_capability', current + part);
+              }
+            }
+
             if (currentSummationDelivered != 0 && currentSummationDeliveredHCHP == 0 && currentSummationDeliveredHCHC == 0) {
               if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
                 await self._updatePeriodIfChanged('TH..');
@@ -855,7 +863,7 @@ Device.prototype._updatePriceOptionIfChanged = async function(newValue) {
     let val = newValue;
     if (val === 'BBRx') val = 'BBR';
     if (val === 'HC..') val = 'HPHC';
-    const VALID = ['BASE', 'HC..', 'HPHC', 'EJP.', 'BBR', 'UNKN'];
+    const VALID = ['BASE', 'TEMPO', 'HC..', 'HPHC', 'EJP.', 'BBR', 'UNKN'];
     if (!VALID.includes(val)) val = 'UNKN';
 
     const prev = this.getCapabilityValue('price_option_capability');

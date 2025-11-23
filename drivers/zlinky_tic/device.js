@@ -305,9 +305,12 @@ class Device extends ZigBeeDevice {
                   ]);
                 tomorrowRaw = registerStatus;
                 // Parse en entier non signé avant l'extraction de la couleur
-                let regDec = self._parseRegisterToUint32(registerStatus);
-                normTomorrow = self._extractTomorrowFromRegister(regDec);
-                normToday = self._extractTodayFromRegister(regDec);
+                // let regDec = self._parseRegisterToUint32(registerStatus);
+                let regDec = registerStatus
+                normTomorrow = 'BLEU';
+                // normTomorrow = self._extractTomorrowFromRegister(regDec);
+                // normToday = self._extractTodayFromRegister(regDec);
+                normToday = "BLEU";
 
                 try {
                   const todayStr = normToday ?? '----';

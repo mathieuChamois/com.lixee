@@ -312,7 +312,7 @@ class Device extends ZigBeeDevice {
                 try {
                   const todayStr = normToday ?? '----';
                   const tomorrowStr = normTomorrow ?? '----';
-                  const debugValue = `${regDec} - ${todayStr} | ${tomorrowStr}`;
+                  const debugValue = `${priceOption} - ${registerStatus} - ${regDec} - ${todayStr} | ${tomorrowStr}`;
                   if (self.hasCapability('debug_capability') && self.getCapabilityValue('debug_capability') !== debugValue) {
                     await self.setCapabilityValue('debug_capability', debugValue);
                   }
@@ -494,7 +494,8 @@ class Device extends ZigBeeDevice {
 
             await self.setCapabilityValue('serial_number_capability', serialNumber);
 
-            if (currentSummationDelivered != 0 && (self.getCapabilityValue('price_option_capability') !== 'BBR' || self.getCapabilityValue('price_option_capability') !== 'BBRx')) {
+            await self.setCapabilityValue('debug_capability', self.getCapabilityValue('debug_capability') + ' - ' + pricePeriod);
+            if (currentSummationDelivered != 0 && currentSummationDeliveredHCHP == 0 && currentSummationDeliveredHCHC == 0) {
               if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
                 await self._updatePeriodIfChanged('TH..');
                 await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));

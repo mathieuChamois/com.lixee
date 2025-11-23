@@ -166,5 +166,8 @@
   },
   "1.3.16": {
     "en": "add logs and check hp hc for base contract"
+  },
+  "1.3.17": {
+    "en": "add TEMPO to map price option and more debug"
   }
 }

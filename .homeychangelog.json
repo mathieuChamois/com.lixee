@@ -169,5 +169,8 @@
   },
   "1.3.17": {
     "en": "add TEMPO to map price option and more debug"
+  },
+  "1.3.18": {
+    "en": "use raw value for register status"
   }
 }

@@ -286,6 +286,7 @@
         "price_option_capability",
         "serial_number_capability",
         "price_period_capability",
+        "today_color_capability",
         "tomorrow_color_capability",
         "subscribe_intensity_capability",
         "alarm_subscribe_power_capability",
@@ -871,6 +872,56 @@
       "step": 0.5,
       "insights": true,
       "icon": "/assets/zap.svg"
+    },
+    "today_color_capability": {
+      "type": "enum",
+      "title": {
+        "en": "Today color",
+        "fr": "Aujourd'hui"
+      },
+      "values": [
+        {
+          "id": "",
+          "title": {
+            "en": "Unkown",
+            "fr": "Non Connue"
+          }
+        },
+        {
+          "id": "----",
+          "title": {
+            "en": "Unkown",
+            "fr": "Non Connue"
+          }
+        },
+        {
+          "id": "BLEU",
+          "title": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
+        },
+        {
+          "id": "BLAN",
+          "title": {
+            "en": "White",
+            "fr": "Blanc"
+          }
+        },
+        {
+          "id": "ROUG",
+          "title": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
+        }
+      ],
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "step": 0.5,
+      "insights": false,
+      "icon": "/assets/sun.svg"
     },
     "tomorrow_color_capability": {
       "type": "enum",

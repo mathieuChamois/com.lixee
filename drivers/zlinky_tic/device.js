@@ -305,12 +305,9 @@ class Device extends ZigBeeDevice {
                   ]);
                 tomorrowRaw = registerStatus;
                 // Parse en entier non signé avant l'extraction de la couleur
-                // let regDec = self._parseRegisterToUint32(registerStatus);
-                let regDec = registerStatus
-                normTomorrow = 'BLEU';
-                // normTomorrow = self._extractTomorrowFromRegister(regDec);
-                // normToday = self._extractTodayFromRegister(regDec);
-                normToday = "BLEU";
+                let regDec = self._parseRegisterToUint32(registerStatus);
+                normTomorrow = self._extractTomorrowFromRegister(regDec);
+                normToday = self._extractTodayFromRegister(regDec);
 
                 try {
                   const todayStr = normToday ?? '----';
@@ -442,15 +439,18 @@ class Device extends ZigBeeDevice {
 
             if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase' && phase2ApparentPower == 0 && phase3ApparentPower == 0) {
               if (self.hasCapability('phase_1_apparent_power_capability')) {
-                await self.removeCapability('phase_1_apparent_power_capability').catch(this.error);
+                await self.removeCapability('phase_1_apparent_power_capability')
+                  .catch(this.error);
               }
 
               if (self.hasCapability('phase_2_apparent_power_capability')) {
-                await self.removeCapability('phase_2_apparent_power_capability').catch(this.error);
+                await self.removeCapability('phase_2_apparent_power_capability')
+                  .catch(this.error);
               }
 
               if (self.hasCapability('phase_3_apparent_power_capability')) {
-                await self.removeCapability('phase_3_apparent_power_capability').catch(this.error);
+                await self.removeCapability('phase_3_apparent_power_capability')
+                  .catch(this.error);
               }
 
               await self.setCapabilityValue('phase_capability', 'monophase');
@@ -497,51 +497,40 @@ class Device extends ZigBeeDevice {
 
             await self.setCapabilityValue('serial_number_capability', serialNumber);
 
-            // Ajoute pricePeriod à debug_capability seulement s'il n'est pas déjà présent
-            if (self.hasCapability('debug_capability')) {
-              const current = (self.getCapabilityValue('debug_capability') || '').toString();
-              const part = ` - ${pricePeriod}`;
-              if (!current.includes(part)) {
-                await self.setCapabilityValue('debug_capability', current + part);
+            if (self.getCapabilityValue('price_option_capability') === 'BASE') {
+              if (currentSummationDelivered != 0) {
+                if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
+                  await self._updatePeriodIfChanged('TH..');
+                  await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
+                  await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
+                }
               }
             }
 
-            if (currentSummationDelivered != 0 && currentSummationDeliveredHCHP == 0 && currentSummationDeliveredHCHC == 0) {
-              if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
-                await self._updatePeriodIfChanged('TH..');
-                await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
-                await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
-                await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
+            if (self.getCapabilityValue('price_option_capability') === 'TEMPO' || self.getCapabilityValue('price_option_capability') === 'BBR' || self.getCapabilityValue('price_option_capability') === 'EJP' || self.getCapabilityValue('price_option_capability') === 'HPHC') {
+              let cumulativeIndex = Math.floor((currentSummationDeliveredHCHP ?? 0) / 1000) + Math.floor((currentSummationDeliveredHCHC ?? 0) / 1000);
+              await self.setCapabilityValue('meter_power', cumulativeIndex);
+              await self.setCapabilityValue('meter_power.imported', cumulativeIndex);
+
+              self.log(`currentSummationDeliveredHCHP=${currentSummationDeliveredHCHP} currentSummationDeliveredHCHC=${currentSummationDeliveredHCHC}`);
+              self.log(`hpLastValue=${hpLastValue} hcLastValue=${hcLastValue}`);
+
+              if (currentSummationDeliveredHCHP != hpLastValue) {
+                hpLastValue = currentSummationDeliveredHCHP;
+                currentSummationDeliveredHCHP = Math.floor((currentSummationDeliveredHCHP ?? 0) / 1000);
+                await self._updatePeriodIfChanged('HP..');
+                await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
               }
-            }
 
-            if (currentSummationDeliveredHCHP != hpLastValue) {
-              hpLastValue = currentSummationDeliveredHCHP;
-              currentSummationDeliveredHCHP = Math.floor((currentSummationDeliveredHCHP ?? 0) / 1000);
-              await self._updatePeriodIfChanged('HP..');
-              await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
-              await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHP);
-              await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHP);
+              if (currentSummationDeliveredHCHC != hcLastValue) {
+                hcLastValue = currentSummationDeliveredHCHC;
+                currentSummationDeliveredHCHC = Math.floor((currentSummationDeliveredHCHC ?? 0) / 1000);
+                await self._updatePeriodIfChanged('HC..');
+                await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
+              }
+
               await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
-            }
-
-            if (currentSummationDeliveredHCHC != hcLastValue) {
-              hcLastValue = currentSummationDeliveredHCHC;
-              currentSummationDeliveredHCHC = Math.floor((currentSummationDeliveredHCHC ?? 0) / 1000);
-              await self._updatePeriodIfChanged('HC..');
-              await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
-              await self.setCapabilityValue('meter_power', currentSummationDeliveredHCHC);
-              await self.setCapabilityValue('meter_power.imported', currentSummationDeliveredHCHC);
-              await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
-            }
-
-            switch (self.getCapabilityValue('price_option_capability')) {
-              case 'EJP.':
-              case 'BBR':
-                await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
-                await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
-                await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
-                break;
             }
 
             self.log(`Cluster metering return response correctly`);
@@ -733,7 +722,9 @@ Device.prototype._parseRegisterToUint32 = function(reg) {
   try {
     if (reg === null || reg === undefined) return null;
     if (typeof reg === 'number') return (reg >>> 0);
-    let s = String(reg).replace(/\u0000/g, '').trim();
+    let s = String(reg)
+      .replace(/\u0000/g, '')
+      .trim();
     if (s === '') return null;
     // Retire tout ce qui n'est pas chiffre/hex ou préfixe 0x
     s = s.replace(/[^0-9a-fA-Fx]/g, '');
@@ -759,7 +750,8 @@ Device.prototype._normalizeTomorrowColor = function(raw) {
     if (raw === null || raw === undefined) return '----';
     let s = String(raw);
     // Nettoyage des caractères nuls et espaces
-    s = s.replace(/\u0000/g, '').trim();
+    s = s.replace(/\u0000/g, '')
+      .trim();
     if (s === '') return '----';
     const u = s.toUpperCase();
     // Marques d'inconnues fréquentes
@@ -842,10 +834,14 @@ Device.prototype._extractTodayFromRegister = function(reg) {
 
     if (code === 0) return null;
     switch (code) {
-      case 1: return 'BLEU';
-      case 2: return 'BLAN';
-      case 3: return 'ROUG';
-      default: return null;
+      case 1:
+        return 'BLEU';
+      case 2:
+        return 'BLAN';
+      case 3:
+        return 'ROUG';
+      default:
+        return null;
     }
   } catch (e) {
     this.error(`_extractTodayFromRegister error: ${e && e.message ? e.message : e}`);

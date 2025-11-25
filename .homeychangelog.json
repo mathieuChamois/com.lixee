@@ -178,5 +178,8 @@
   },
   "1.3.20": {
     "en": "delete twice call for demain and today"
+  },
+  "1.3.21": {
+    "en": "set today color for historique and change order in ui for today"
   }
 }

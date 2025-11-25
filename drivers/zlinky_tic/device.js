@@ -468,10 +468,34 @@ class Device extends ZigBeeDevice {
               }
             }
 
-            if (self.getCapabilityValue('price_option_capability') === 'TEMPO' || self.getCapabilityValue('price_option_capability') === 'BBR' || self.getCapabilityValue('price_option_capability') === 'EJP' || self.getCapabilityValue('price_option_capability') === 'HPHC') {
+            if (self.getCapabilityValue('price_option_capability') === 'HPHC') {
               let cumulativeIndex = Math.floor((currentSummationDeliveredHCHP ?? 0) / 1000) + Math.floor((currentSummationDeliveredHCHC ?? 0) / 1000);
               await self.setCapabilityValue('meter_power', cumulativeIndex);
               await self.setCapabilityValue('meter_power.imported', cumulativeIndex);
+
+              self.log(`currentSummationDeliveredHCHP=${currentSummationDeliveredHCHP} currentSummationDeliveredHCHC=${currentSummationDeliveredHCHC}`);
+              self.log(`hpLastValue=${hpLastValue} hcLastValue=${hcLastValue}`);
+
+              if (currentSummationDeliveredHCHP != hpLastValue) {
+                hpLastValue = currentSummationDeliveredHCHP;
+                currentSummationDeliveredHCHP = Math.floor((currentSummationDeliveredHCHP ?? 0) / 1000);
+                await self._updatePeriodIfChanged('HP..');
+                await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
+              }
+
+              if (currentSummationDeliveredHCHC != hcLastValue) {
+                hcLastValue = currentSummationDeliveredHCHC;
+                currentSummationDeliveredHCHC = Math.floor((currentSummationDeliveredHCHC ?? 0) / 1000);
+                await self._updatePeriodIfChanged('HC..');
+                await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
+              }
+
+              await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
+            }
+
+            if (self.getCapabilityValue('price_option_capability') === 'TEMPO' || self.getCapabilityValue('price_option_capability') === 'BBR' || self.getCapabilityValue('price_option_capability') === 'EJP') {
+              await self.setCapabilityValue('meter_power', currentSummationDelivered);
+              await self.setCapabilityValue('meter_power.imported', currentSummationDelivered);
 
               self.log(`currentSummationDeliveredHCHP=${currentSummationDeliveredHCHP} currentSummationDeliveredHCHC=${currentSummationDeliveredHCHC}`);
               self.log(`hpLastValue=${hpLastValue} hcLastValue=${hcLastValue}`);

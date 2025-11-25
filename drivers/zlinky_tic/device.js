@@ -347,6 +347,15 @@ class Device extends ZigBeeDevice {
               }
               await self.setCapabilityValue('tomorrow_color_capability', normTomorrow);
             }
+
+            if (normToday !== null && self.getCapabilityValue('mode_capability') === 'standard') {
+              const current = self.getCapabilityValue('today_color_capability');
+              if (current !== normTomorrow) {
+                self.log(`[TODAY] (refresh) Raw='${tomorrowRaw}' -> Normalized='${normToday}'`);
+              }
+              await self.setCapabilityValue('today_color_capability', normToday);
+            }
+
             await self.setCapabilityValue('alarm_subscribe_power_capability', subscribePowerAlert !== 0);
 
             self.log(`Cluster lixee private return response correctly`);
@@ -354,57 +363,7 @@ class Device extends ZigBeeDevice {
             self.log(`Something wrong with zigbee cluster and message : ${e.message}, app will retry later `);
           }
         }, 10000);
-
-        // Rafraîchit uniquement la couleur de demain toutes les 10 secondes
-        setInterval(async () => {
-          try {
-            let tomorrowRaw = null;
-            // Ne pas écraser la dernière valeur si on n'a pas une couleur valide
-            let normTomorrow = null;
-            let normToday = null;
-
-            if (self.getCapabilityValue('mode_capability') === 'standard') {
-              // Mode standard: lecture de registerStatus, parsing en uint32, puis extraction de la couleur DEMAIN (bits 26-27)
-              try {
-                const { registerStatus } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
-                  .clusters[LixeePrivateCluster.NAME]
-                  .readAttributes([
-                    'registerStatus'
-                  ]);
-                tomorrowRaw = registerStatus;
-                const regDec = self._parseRegisterToUint32(registerStatus);
-                normTomorrow = self._extractTomorrowFromRegister(regDec);
-              } catch (e) {
-                // Pas de fallback en mode standard
-                self.log(`[TOMORROW] refresh registerStatus read failed (standard mode, no fallback): ${e && e.message ? e.message : e}`);
-              }
-            } else {
-              // Mode historique/Tempo: lecture tomorrowColor texte
-              try {
-                const { tomorrowColor } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
-                  .clusters[LixeePrivateCluster.NAME]
-                  .readAttributes([
-                    'tomorrowColor'
-                  ]);
-                tomorrowRaw = tomorrowColor;
-                normTomorrow = self._normalizeTomorrowColor(tomorrowColor);
-              } catch (e) {
-                self.log(`[TOMORROW] refresh tomorrowColor read failed (historique): ${e && e.message ? e.message : e}`);
-              }
-            }
-
-            if (normTomorrow !== null) {
-              const current = self.getCapabilityValue('tomorrow_color_capability');
-              if (current !== normTomorrow) {
-                self.log(`[TOMORROW] (refresh) Raw='${tomorrowRaw}' -> Normalized='${normTomorrow}'`);
-              }
-              await self.setCapabilityValue('tomorrow_color_capability', normTomorrow);
-            }
-          } catch (e) {
-            self.log(`[TOMORROW] refresh error: ${e && e.message ? e.message : e}`);
-          }
-        }, 10000);
-
+        
         setInterval(async () => {
           try {
             let {
@@ -551,6 +510,8 @@ class Device extends ZigBeeDevice {
       .catch(this.error);
     await this.removeCapability('serial_number_capability')
       .catch(this.error);
+    await this.removeCapability('today_color_capability')
+      .catch(this.error);
     await this.removeCapability('tomorrow_color_capability')
       .catch(this.error);
     await this.removeCapability('subscribe_intensity_capability')
@@ -575,6 +536,8 @@ class Device extends ZigBeeDevice {
     await this.addCapability('clock_full_hour_empty_hour_capability')
       .catch(this.error);
     await this.addCapability('alarm_subscribe_power_capability')
+      .catch(this.error);
+    await this.addCapability('today_color_capability')
       .catch(this.error);
     await this.addCapability('tomorrow_color_capability')
       .catch(this.error);

@@ -334,6 +334,8 @@ class Device extends ZigBeeDevice {
                   ]);
                 tomorrowRaw = tomorrowColor;
                 normTomorrow = self._normalizeTomorrowColor(tomorrowColor);
+                normToday = '----';
+
               } catch (e) {
                 self.log(`[WARN] tomorrowColor read failed (historique): ${e && e.message ? e.message : e}`);
               }
@@ -348,10 +350,9 @@ class Device extends ZigBeeDevice {
               await self.setCapabilityValue('tomorrow_color_capability', normTomorrow);
             }
 
-            if (normToday !== null && self.getCapabilityValue('mode_capability') === 'standard') {
-              const current = self.getCapabilityValue('today_color_capability');
-              if (current !== normTomorrow) {
-                self.log(`[TODAY] (refresh) Raw='${tomorrowRaw}' -> Normalized='${normToday}'`);
+            if (normToday !== null) {
+              if (self.getCapabilityValue('today_color_capability') !== normToday) {
+                self.log(`[TODAY] Raw='${tomorrowRaw}' -> Normalized='${normToday}'`);
               }
               await self.setCapabilityValue('today_color_capability', normToday);
             }
@@ -363,7 +364,7 @@ class Device extends ZigBeeDevice {
             self.log(`Something wrong with zigbee cluster and message : ${e.message}, app will retry later `);
           }
         }, 10000);
-        
+
         setInterval(async () => {
           try {
             let {
@@ -535,11 +536,11 @@ class Device extends ZigBeeDevice {
       .catch(this.error);
     await this.addCapability('clock_full_hour_empty_hour_capability')
       .catch(this.error);
-    await this.addCapability('alarm_subscribe_power_capability')
-      .catch(this.error);
     await this.addCapability('today_color_capability')
       .catch(this.error);
     await this.addCapability('tomorrow_color_capability')
+      .catch(this.error);
+    await this.addCapability('alarm_subscribe_power_capability')
       .catch(this.error);
     await this.addCapability('subscribe_intensity_capability')
       .catch(this.error);

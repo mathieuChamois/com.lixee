@@ -494,8 +494,8 @@ class Device extends ZigBeeDevice {
             }
 
             if (self.getCapabilityValue('price_option_capability') === 'TEMPO' || self.getCapabilityValue('price_option_capability') === 'BBR' || self.getCapabilityValue('price_option_capability') === 'EJP') {
-              await self.setCapabilityValue('meter_power', currentSummationDelivered);
-              await self.setCapabilityValue('meter_power.imported', currentSummationDelivered);
+              await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
+              await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
 
               self.log(`currentSummationDeliveredHCHP=${currentSummationDeliveredHCHP} currentSummationDeliveredHCHC=${currentSummationDeliveredHCHC}`);
               self.log(`hpLastValue=${hpLastValue} hcLastValue=${hcLastValue}`);

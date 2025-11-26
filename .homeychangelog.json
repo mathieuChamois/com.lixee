@@ -184,5 +184,8 @@
   },
   "1.3.22": {
     "en": "always change color value"
+  },
+  "1.3.23": {
+    "en": "divide by 1000"
   }
 }

@@ -41,6 +41,13 @@
       }
     },
     {
+      "id": "TEMPO",
+      "title": {
+        "en": "Tempo Option",
+        "fr": "Option Tempo"
+      }
+    },
+    {
       "id": "UNKN",
       "title": {
         "en": "Unknown",

@@ -762,7 +762,7 @@ Device.prototype._normalizeTomorrowColor = function(raw) {
 // Extrait la couleur de DEMAIN (mode standard) depuis registerStatus (uint32)
 // Spécification fournie: bits 26 (LSB) et 27 (MSB)
 // Mapping: 0=Pas d'annonce, 1=BLEU, 2=BLAN, 3=ROUG
-// Retourne: 'BLEU' | 'BLAN' | 'ROUG' ou null si indéterminé (pour ne pas écraser l’ancienne valeur)
+// Retourne: 'BLEU' | 'BLAN' | 'ROUG' | '----' (pas d'annonce) ou null si indéterminé (erreur de parsing)
 Device.prototype._extractTomorrowFromRegister = function(reg) {
   try {
     if (reg === null || reg === undefined) return null;
@@ -783,7 +783,8 @@ Device.prototype._extractTomorrowFromRegister = function(reg) {
       }
     }
 
-    if (code === 0) return null; // pas d'annonce ou indéterminé
+    // code 0 = "pas d'annonce" : on renvoie '----' afin d'écraser l'ancienne valeur
+    if (code === 0) return '----';
     switch (code) {
       case 1:
         return 'BLEU';
@@ -820,7 +821,8 @@ Device.prototype._extractTodayFromRegister = function(reg) {
       }
     }
 
-    if (code === 0) return null;
+    // code 0 = "pas d'annonce" : on renvoie '----' afin d'écraser l'ancienne valeur
+    if (code === 0) return '----';
     switch (code) {
       case 1:
         return 'BLEU';

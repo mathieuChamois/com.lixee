@@ -609,7 +609,7 @@ class Device extends ZigBeeDevice {
       case 3:
         return ['standard', 'triphase'];
       case 5:
-        return ['historique', 'triphase', 'producteur'];
+        return ['standard', 'monophase', 'producteur'];
       case 7:
         return ['standard', 'triphase', 'producteur'];
       default:
@@ -619,6 +619,7 @@ class Device extends ZigBeeDevice {
   }
 
   async prepareMode(currentMode) {
+    this.log(`Current mode: ${currentMode.mode}`);
     const explodedMode = this.decodeMode(currentMode.mode);
 
     await this.removeCapability('meter_power.imported')

@@ -2,7 +2,7 @@
   "type": "number",
   "title": {
     "en": "RMS voltage",
-    "fr": "Valeur efficace tension"
+    "fr": "Tension efficace"
   },
   "uiComponent": "sensor",
   "getable": true,

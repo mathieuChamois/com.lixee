@@ -1,7 +1,7 @@
 {
   "type": "number",
   "title": {
-    "en": "Maximal intensity",
+    "en": "Maximum intensity",
     "fr": "Intensité maximale"
   },
   "uiComponent": "sensor",

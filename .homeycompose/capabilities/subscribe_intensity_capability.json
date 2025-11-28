@@ -1,9 +1,8 @@
 {
   "type": "number",
   "title": {
-    "en": "Subscribe intensity",
+    "en": "Subscribed current",
     "fr": "Intensité souscrite"
-
   },
   "uiComponent": "sensor",
   "getable": true,

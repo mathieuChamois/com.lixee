@@ -1,8 +1,8 @@
 {
   "type": "number",
   "title": {
-    "en": "Summation delivered",
-    "fr": "Énergie livrée"
+    "fr": "Heures creuses rouge",
+    "en": "Red off-peak hours"
   },
   "uiComponent": "sensor",
   "getable": true,
@@ -10,5 +10,5 @@
   "units": { "en": "kwh" },
   "step": 0.5,
   "insights": true,
-  "icon": "/assets/zap.svg"
+  "icon": "/assets/meter_power.svg"
 }

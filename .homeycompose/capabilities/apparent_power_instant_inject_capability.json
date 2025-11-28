@@ -2,8 +2,7 @@
   "type": "number",
   "title": {
     "en": "Injected instantaneous apparent power",
-    "fr": "Puissance app. Instantanée injectée"
-
+    "fr": "Puissance apparente instantanée injectée"
   },
   "uiComponent": "sensor",
   "getable": true,

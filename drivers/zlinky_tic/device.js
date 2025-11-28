@@ -18,6 +18,12 @@ var message;
 var state;
 var hpLastValue = 0;
 var hcLastValue = 0;
+var hpBlueLastValue = 0;
+var hcBlueLastValue = 0;
+var hpWhiteLastValue = 0;
+var hcWhiteLastValue = 0;
+var hpRedLastValue = 0;
+var hcRedLastValue = 0;
 
 class Device extends ZigBeeDevice {
   async onNodeInit({ zclNode }) {
@@ -30,7 +36,22 @@ class Device extends ZigBeeDevice {
 
     async function doInit() {
       try {
-        await self.prepareMode(await self.getMode(zclNode));
+        let {
+          priceOption
+        } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
+          .clusters[LixeePrivateCluster.NAME]
+          .readAttributes([
+            'priceOption'
+          ]);
+
+        // Si priceOption est vide/indéfini, on ignore cet intervalle et on attend le prochain
+        if (priceOption === undefined || priceOption === null || priceOption === '') {
+          self.log('[INFO] priceOption vide, on attend la prochaine fenêtre de rafraîchissement');
+          return;
+        }
+
+        await self.prepareMode(await self.getMode(zclNode), await priceOption);
+
         await self.prepareCapabilities();
 
         // Enregistre la condition Flow "period_option_is"
@@ -248,20 +269,6 @@ class Device extends ZigBeeDevice {
 
         setInterval(async () => {
           try {
-            let {
-              priceOption
-            } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
-              .clusters[LixeePrivateCluster.NAME]
-              .readAttributes([
-                'priceOption'
-              ]);
-
-            // Si priceOption est vide/indéfini, on ignore cet intervalle et on attend le prochain
-            if (priceOption === undefined || priceOption === null || priceOption === '') {
-              self.log('[INFO] priceOption vide, on attend la prochaine fenêtre de rafraîchissement');
-              return;
-            }
-
             const {
               subscribePowerAlert,
             } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
@@ -440,17 +447,12 @@ class Device extends ZigBeeDevice {
           try {
             let {
               currentSummationDelivered,
-              currentSummationDeliveredHCHC,
-              currentSummationDeliveredHCHP,
               activeEnergyTotalInjected,
               serialNumber,
-              pricePeriod
             } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.METERING)]
               .clusters[CLUSTER.METERING.NAME]
               .readAttributes([
                 'currentSummationDelivered',
-                'currentSummationDeliveredHCHC',
-                'currentSummationDeliveredHCHP',
                 'serialNumber',
                 'pricePeriod'
               ]);
@@ -463,59 +465,118 @@ class Device extends ZigBeeDevice {
                   await self._updatePeriodIfChanged('TH..');
                   await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
                   await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
-                  await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
                 }
               }
             }
 
             if (self.getCapabilityValue('price_option_capability') === 'HPHC') {
-              let cumulativeIndex = Math.floor((currentSummationDeliveredHCHP ?? 0) / 1000) + Math.floor((currentSummationDeliveredHCHC ?? 0) / 1000);
+              let {
+                currentSummationDeliveredHC,
+                currentSummationDeliveredHP,
+              } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.METERING)]
+                .clusters[CLUSTER.METERING.NAME]
+                .readAttributes([
+                  'currentSummationDeliveredHC',
+                  'currentSummationDeliveredHP',
+                ]);
+
+              let cumulativeIndex = Math.floor((currentSummationDeliveredHP ?? 0) / 1000) + Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
               await self.setCapabilityValue('meter_power', cumulativeIndex);
               await self.setCapabilityValue('meter_power.imported', cumulativeIndex);
 
-              self.log(`currentSummationDeliveredHCHP=${currentSummationDeliveredHCHP} currentSummationDeliveredHCHC=${currentSummationDeliveredHCHC}`);
+              self.log(`currentSummationDeliveredHP=${currentSummationDeliveredHP} currentSummationDeliveredHC=${currentSummationDeliveredHC}`);
               self.log(`hpLastValue=${hpLastValue} hcLastValue=${hcLastValue}`);
 
-              if (currentSummationDeliveredHCHP != hpLastValue) {
-                hpLastValue = currentSummationDeliveredHCHP;
-                currentSummationDeliveredHCHP = Math.floor((currentSummationDeliveredHCHP ?? 0) / 1000);
+              if (currentSummationDeliveredHP != hpLastValue) {
+                hpLastValue = currentSummationDeliveredHP;
+                currentSummationDeliveredHP = Math.floor((currentSummationDeliveredHP ?? 0) / 1000);
                 await self._updatePeriodIfChanged('HP..');
-                await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
+                await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHP);
               }
 
-              if (currentSummationDeliveredHCHC != hcLastValue) {
-                hcLastValue = currentSummationDeliveredHCHC;
-                currentSummationDeliveredHCHC = Math.floor((currentSummationDeliveredHCHC ?? 0) / 1000);
+              if (currentSummationDeliveredHC != hcLastValue) {
+                hcLastValue = currentSummationDeliveredHC;
+                currentSummationDeliveredHC = Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
                 await self._updatePeriodIfChanged('HC..');
-                await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
+                await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHC);
               }
-
-              await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
             }
 
             if (self.getCapabilityValue('price_option_capability') === 'TEMPO' || self.getCapabilityValue('price_option_capability') === 'BBR' || self.getCapabilityValue('price_option_capability') === 'EJP') {
+              let {
+                currentSummationDeliveredHC,
+                currentSummationDeliveredHP,
+                currentSummationDeliveredHCW,
+                currentSummationDeliveredHPW,
+                currentSummationDeliveredHCR,
+                currentSummationDeliveredHPR,
+              } = await zclNode.endpoints[self.getClusterEndpoint(CLUSTER.METERING)]
+                .clusters[CLUSTER.METERING.NAME]
+                .readAttributes([
+                  'currentSummationDeliveredHC',
+                  'currentSummationDeliveredHP',
+                  'currentSummationDeliveredHCW',
+                  'currentSummationDeliveredHPW',
+                  'currentSummationDeliveredHCR',
+                  'currentSummationDeliveredHPR',
+                ]);
+
               await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
               await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
 
-              self.log(`currentSummationDeliveredHCHP=${currentSummationDeliveredHCHP} currentSummationDeliveredHCHC=${currentSummationDeliveredHCHC}`);
-              self.log(`hpLastValue=${hpLastValue} hcLastValue=${hcLastValue}`);
+              self.log(`currentSummationDeliveredHP=${currentSummationDeliveredHP} currentSummationDeliveredHC=${currentSummationDeliveredHC}`);
+              self.log(`hpLastBlueValue=${hpBlueLastValue} hcBlueLastValue=${hcBlueLastValue}`);
+              self.log(`currentSummationDeliveredHP=${currentSummationDeliveredHP} currentSummationDeliveredHC=${currentSummationDeliveredHC}`);
+              self.log(`hpLastWhiteValue=${hpWhiteLastValue} hcWhiteLastValue=${hcWhiteLastValue}`);
+              self.log(`currentSummationDeliveredHP=${currentSummationDeliveredHP} currentSummationDeliveredHC=${currentSummationDeliveredHC}`);
+              self.log(`hpLastRedValue=${hpRedLastValue} hcRedLastValue=${hcRedLastValue}`);
 
-              if (currentSummationDeliveredHCHP != hpLastValue) {
-                hpLastValue = currentSummationDeliveredHCHP;
-                currentSummationDeliveredHCHP = Math.floor((currentSummationDeliveredHCHP ?? 0) / 1000);
+              // currentSummationDeliveredHP = Jour bleu
+              if (currentSummationDeliveredHP != hpBlueLastValue) {
+                hpBlueLastValue = currentSummationDeliveredHP;
+                currentSummationDeliveredHP = Math.floor((currentSummationDeliveredHP ?? 0) / 1000);
                 await self._updatePeriodIfChanged('HP..');
-                await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHCHP);
+                await self.setCapabilityValue('full_hour_blue_capability', currentSummationDeliveredHP);
               }
 
-              if (currentSummationDeliveredHCHC != hcLastValue) {
-                hcLastValue = currentSummationDeliveredHCHC;
-                currentSummationDeliveredHCHC = Math.floor((currentSummationDeliveredHCHC ?? 0) / 1000);
+              // currentSummationDeliveredHP = Jour bleu
+              if (currentSummationDeliveredHC != hcBlueLastValue) {
+                hcBlueLastValue = currentSummationDeliveredHC;
+                currentSummationDeliveredHC = Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
                 await self._updatePeriodIfChanged('HC..');
-                await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHCHC);
+                await self.setCapabilityValue('empty_hour_blue_capability', currentSummationDeliveredHC);
               }
 
-              await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
+              if (currentSummationDeliveredHPW != hpWhiteLastValue) {
+                hpWhiteLastValue = currentSummationDeliveredHPW;
+                currentSummationDeliveredHPW = Math.floor((currentSummationDeliveredHPW ?? 0) / 1000);
+                await self._updatePeriodIfChanged('HP..');
+                await self.setCapabilityValue('full_hour_white_capability', currentSummationDeliveredHPW);
+              }
+
+              if (currentSummationDeliveredHCW != hcWhiteLastValue) {
+                hcWhiteLastValue = currentSummationDeliveredHCW;
+                currentSummationDeliveredHCW = Math.floor((currentSummationDeliveredHCW ?? 0) / 1000);
+                await self._updatePeriodIfChanged('HC..');
+                await self.setCapabilityValue('empty_hour_white_capability', currentSummationDeliveredHCW);
+              }
+
+              if (currentSummationDeliveredHPR != hpRedLastValue) {
+                hpWhiteLastValue = currentSummationDeliveredHPR;
+                currentSummationDeliveredHPR = Math.floor((currentSummationDeliveredHPR ?? 0) / 1000);
+                await self._updatePeriodIfChanged('HP..');
+                await self.setCapabilityValue('full_hour_red_capability', currentSummationDeliveredHPR);
+              }
+
+              if (currentSummationDeliveredHCR != hpRedLastValue) {
+                hcWhiteLastValue = currentSummationDeliveredHCR;
+                currentSummationDeliveredHCR = Math.floor((currentSummationDeliveredHCR ?? 0) / 1000);
+                await self._updatePeriodIfChanged('HC..');
+                await self.setCapabilityValue('empty_hour_red_capability', currentSummationDeliveredHCR);
+              }
+
             }
+            await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
 
             self.log(`Cluster metering return response correctly`);
           } catch (e) {
@@ -618,7 +679,7 @@ class Device extends ZigBeeDevice {
     }
   }
 
-  async prepareMode(currentMode) {
+  async prepareMode(currentMode, priceOption) {
     this.log(`Current mode: ${currentMode.mode}`);
     const explodedMode = this.decodeMode(currentMode.mode);
 
@@ -642,10 +703,41 @@ class Device extends ZigBeeDevice {
               .catch(this.error);
             await this.removeCapability('empty_hour_capability')
               .catch(this.error);
-            await this.addCapability('full_hour_capability')
+
+            if (priceOption == 'HC..' || priceOption == 'HP..') {
+              await this.addCapability('full_hour_capability')
+                .catch(this.error);
+              await this.addCapability('empty_hour_capability')
+                .catch(this.error);
+            }
+
+            await this.removeCapability('full_hour_blue_capability')
               .catch(this.error);
-            await this.addCapability('empty_hour_capability')
+            await this.removeCapability('empty_hour_blue_capability')
               .catch(this.error);
+            await this.removeCapability('full_hour_white_capability')
+              .catch(this.error);
+            await this.removeCapability('empty_hour_white_capability')
+              .catch(this.error);
+            await this.removeCapability('full_hour_red_capability')
+              .catch(this.error);
+            await this.removeCapability('empty_hour_red_capability')
+              .catch(this.error);
+
+            if (priceOption == 'TEMPO' || priceOption == 'BBR' || priceOption === 'EJP') {
+              await this.addCapability('full_hour_blue_capability')
+                .catch(this.error);
+              await this.addCapability('empty_hour_blue_capability')
+                .catch(this.error);
+              await this.addCapability('full_hour_white_capability')
+                .catch(this.error);
+              await this.addCapability('empty_hour_white_capability')
+                .catch(this.error);
+              await this.addCapability('full_hour_red_capability')
+                .catch(this.error);
+              await this.addCapability('empty_hour_red_capability')
+                .catch(this.error);
+            }
 
             await this.removeCapability('price_period_capability')
               .catch(this.error);

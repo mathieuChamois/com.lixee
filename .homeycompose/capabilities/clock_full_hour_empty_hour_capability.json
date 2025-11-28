@@ -1,8 +1,8 @@
 {
   "type": "enum",
   "title": {
-    "en": "Clock Full Hour Empty Hour",
-    "fr": "Horaire Heure Pleines Heures Creuses"
+    "en": "Full Hour / Off-Peak Hour Clock",
+    "fr": "Horloge Heures Pleines / Heures Creuses"
   },
   "values": [
     {

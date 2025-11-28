@@ -1,22 +1,22 @@
 {
   "type": "enum",
   "title": {
-    "en": "Tomorrow color",
+    "en": "Tomorrow",
     "fr": "Demain"
   },
   "values": [
     {
       "id": "",
       "title": {
-        "en": "Unkown",
-        "fr": "Non Connue"
+        "en": "Unknown",
+        "fr": "Inconnue"
       }
     },
     {
       "id": "----",
       "title": {
-        "en": "Unkown",
-        "fr": "Non Connue"
+        "en": "Unknown",
+        "fr": "Inconnue"
       }
     },
     {

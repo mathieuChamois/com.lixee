@@ -487,19 +487,29 @@ class Device extends ZigBeeDevice {
               self.log(`currentSummationDeliveredHP=${currentSummationDeliveredHP} currentSummationDeliveredHC=${currentSummationDeliveredHC}`);
               self.log(`hpLastValue=${hpLastValue} hcLastValue=${hcLastValue}`);
 
+              if (hpLastValue == 0) {
+                hpLastValue = currentSummationDeliveredHP;
+              }
+
               if (currentSummationDeliveredHP != hpLastValue) {
                 hpLastValue = currentSummationDeliveredHP;
-                currentSummationDeliveredHP = Math.floor((currentSummationDeliveredHP ?? 0) / 1000);
                 await self._updatePeriodIfChanged('HP..');
-                await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHP);
+              }
+
+              currentSummationDeliveredHP = Math.floor((currentSummationDeliveredHP ?? 0) / 1000);
+              await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHP);
+
+              if (hcLastValue == 0) {
+                hcLastValue = currentSummationDeliveredHC;
               }
 
               if (currentSummationDeliveredHC != hcLastValue) {
                 hcLastValue = currentSummationDeliveredHC;
-                currentSummationDeliveredHC = Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
                 await self._updatePeriodIfChanged('HC..');
-                await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHC);
               }
+
+              currentSummationDeliveredHC = Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
+              await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHC);
             }
 
             if (self.getCapabilityValue('price_option_capability') === 'TEMPO' || self.getCapabilityValue('price_option_capability') === 'BBR' || self.getCapabilityValue('price_option_capability') === 'EJP') {
@@ -531,50 +541,79 @@ class Device extends ZigBeeDevice {
               self.log(`currentSummationDeliveredHP=${currentSummationDeliveredHP} currentSummationDeliveredHC=${currentSummationDeliveredHC}`);
               self.log(`hpLastRedValue=${hpRedLastValue} hcRedLastValue=${hcRedLastValue}`);
 
+              if (hpBlueLastValue == 0) {
+                hpBlueLastValue = currentSummationDeliveredHP;
+              }
+
               // currentSummationDeliveredHP = Jour bleu
               if (currentSummationDeliveredHP != hpBlueLastValue) {
                 hpBlueLastValue = currentSummationDeliveredHP;
-                currentSummationDeliveredHP = Math.floor((currentSummationDeliveredHP ?? 0) / 1000);
                 await self._updatePeriodIfChanged('HP..');
-                await self.setCapabilityValue('full_hour_blue_capability', currentSummationDeliveredHP);
+              }
+
+              currentSummationDeliveredHP = Math.floor((currentSummationDeliveredHP ?? 0) / 1000);
+              await self.setCapabilityValue('full_hour_blue_capability', currentSummationDeliveredHP);
+
+              if (hcBlueLastValue == 0) {
+                hcBlueLastValue = currentSummationDeliveredHC;
               }
 
               // currentSummationDeliveredHP = Jour bleu
               if (currentSummationDeliveredHC != hcBlueLastValue) {
                 hcBlueLastValue = currentSummationDeliveredHC;
-                currentSummationDeliveredHC = Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
                 await self._updatePeriodIfChanged('HC..');
-                await self.setCapabilityValue('empty_hour_blue_capability', currentSummationDeliveredHC);
+              }
+
+              currentSummationDeliveredHC = Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
+              await self.setCapabilityValue('empty_hour_blue_capability', currentSummationDeliveredHC);
+
+              if (hpWhiteLastValue == 0) {
+                hpWhiteLastValue = currentSummationDeliveredHPW;
               }
 
               if (currentSummationDeliveredHPW != hpWhiteLastValue) {
                 hpWhiteLastValue = currentSummationDeliveredHPW;
-                currentSummationDeliveredHPW = Math.floor((currentSummationDeliveredHPW ?? 0) / 1000);
                 await self._updatePeriodIfChanged('HP..');
-                await self.setCapabilityValue('full_hour_white_capability', currentSummationDeliveredHPW);
+              }
+
+              currentSummationDeliveredHPW = Math.floor((currentSummationDeliveredHPW ?? 0) / 1000);
+              await self.setCapabilityValue('full_hour_white_capability', currentSummationDeliveredHPW);
+
+              if (hcWhiteLastValue == 0) {
+                hcWhiteLastValue = currentSummationDeliveredHCW;
               }
 
               if (currentSummationDeliveredHCW != hcWhiteLastValue) {
                 hcWhiteLastValue = currentSummationDeliveredHCW;
-                currentSummationDeliveredHCW = Math.floor((currentSummationDeliveredHCW ?? 0) / 1000);
                 await self._updatePeriodIfChanged('HC..');
-                await self.setCapabilityValue('empty_hour_white_capability', currentSummationDeliveredHCW);
+              }
+
+              currentSummationDeliveredHCW = Math.floor((currentSummationDeliveredHCW ?? 0) / 1000);
+              await self.setCapabilityValue('empty_hour_white_capability', currentSummationDeliveredHCW);
+
+              if (hpRedLastValue == 0) {
+                hpRedLastValue = currentSummationDeliveredHPR;
               }
 
               if (currentSummationDeliveredHPR != hpRedLastValue) {
-                hpWhiteLastValue = currentSummationDeliveredHPR;
-                currentSummationDeliveredHPR = Math.floor((currentSummationDeliveredHPR ?? 0) / 1000);
+                hpRedLastValue = currentSummationDeliveredHPR;
                 await self._updatePeriodIfChanged('HP..');
-                await self.setCapabilityValue('full_hour_red_capability', currentSummationDeliveredHPR);
               }
 
-              if (currentSummationDeliveredHCR != hpRedLastValue) {
-                hcWhiteLastValue = currentSummationDeliveredHCR;
-                currentSummationDeliveredHCR = Math.floor((currentSummationDeliveredHCR ?? 0) / 1000);
+              currentSummationDeliveredHPR = Math.floor((currentSummationDeliveredHPR ?? 0) / 1000);
+              await self.setCapabilityValue('full_hour_red_capability', currentSummationDeliveredHPR);
+
+              if (hcRedLastValue == 0) {
+                hcRedLastValue = currentSummationDeliveredHCR;
+              }
+
+              if (currentSummationDeliveredHCR != hcRedLastValue) {
+                hcRedLastValue = currentSummationDeliveredHCR;
                 await self._updatePeriodIfChanged('HC..');
-                await self.setCapabilityValue('empty_hour_red_capability', currentSummationDeliveredHCR);
               }
 
+              currentSummationDeliveredHCR = Math.floor((currentSummationDeliveredHCR ?? 0) / 1000);
+              await self.setCapabilityValue('empty_hour_red_capability', currentSummationDeliveredHCR);
             }
             await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
 

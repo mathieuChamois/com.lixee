@@ -8,6 +8,9 @@ const MeterIdentificationCluster = require('../../lib/meterIdentificationCluster
 require('../../lib/lixeeElectricalMeasurementCluster');
 require('../../lib/lixeeMeteringCluster');
 const { Log } = require('homey-log');
+// node-fetch v3 est ESM, on passe par un import dynamique compatible CommonJS
+const fetch = (...args) => import('node-fetch')
+  .then(({ default: fetchFn }) => fetchFn(...args));
 
 var lastLogDate;
 
@@ -24,6 +27,13 @@ var hpWhiteLastValue = 0;
 var hcWhiteLastValue = 0;
 var hpRedLastValue = 0;
 var hcRedLastValue = 0;
+
+// Cache global pour l'API couleur Tempo afin de limiter les appels (au plus 1 toutes les 30 minutes)
+// Structure: { timestamp: number (ms depuis epoch), couleur: 'BLEU'|'BLAN'|'ROUG'|'----' }
+const tempoApiCache = {
+  timestamp: 0,
+  couleur: null
+};
 
 class Device extends ZigBeeDevice {
   async onNodeInit({ zclNode }) {
@@ -214,8 +224,78 @@ class Device extends ZigBeeDevice {
           self.error(`Failed to register trigger card period_option_became: ${e && e.message ? e.message : e}`);
         }
 
-        // Mémorise la dernière période connue
+        // Enregistre les cartes de déclenchement Flow pour les couleurs Tempo
+        try {
+          // Couleur d'aujourd'hui
+          self._todayColorBecameCard = self.homey.flow.getDeviceTriggerCard('today_color_became');
+          // Couleur de demain
+          self._tomorrowColorBecameCard = self.homey.flow.getDeviceTriggerCard('tomorrow_color_became');
+
+          // Options possibles pour la couleur Tempo, alignées avec driver.flow.compose.json & app.json
+          const TEMPO_COLOR_OPTIONS = [
+            { id: 'BLEU', name: 'Bleu' },
+            { id: 'BLAN', name: 'Blanc' },
+            { id: 'ROUG', name: 'Rouge' },
+            { id: '----', name: 'Non connu' },
+          ];
+
+          // --- TODAY COLOR ---
+          if (self._todayColorBecameCard) {
+            // Run listener pour permettre le filtrage sur la couleur choisie dans la carte Flow
+            self._todayColorBecameCard.registerRunListener(async (args, state) => {
+              try {
+                const selected = args && args.target ? (args.target.id || args.target) : undefined;
+                if (!selected) return true; // aucun filtre sélectionné dans la carte
+                return state && state.target ? state.target === selected : false;
+              } catch (e) {
+                self.error(`today_color_became run listener failed: ${e && e.message ? e.message : e}`);
+                return false;
+              }
+            });
+
+            // Autocomplete pour l'argument "target" de la carte today_color_became
+            self._todayColorBecameCard.registerArgumentAutocompleteListener('target', async (query, args) => {
+              const q = (query || '').toString().toLowerCase();
+              if (!q) return TEMPO_COLOR_OPTIONS;
+              return TEMPO_COLOR_OPTIONS.filter(opt =>
+                opt.id.toLowerCase().includes(q) ||
+                (opt.name && opt.name.toLowerCase().includes(q))
+              );
+            });
+          }
+
+          // --- TOMORROW COLOR ---
+          if (self._tomorrowColorBecameCard) {
+            // Run listener pour permettre le filtrage sur la couleur choisie dans la carte Flow
+            self._tomorrowColorBecameCard.registerRunListener(async (args, state) => {
+              try {
+                const selected = args && args.target ? (args.target.id || args.target) : undefined;
+                if (!selected) return true; // aucun filtre sélectionné dans la carte
+                return state && state.target ? state.target === selected : false;
+              } catch (e) {
+                self.error(`tomorrow_color_became run listener failed: ${e && e.message ? e.message : e}`);
+                return false;
+              }
+            });
+
+            // Autocomplete pour l'argument "target" de la carte tomorrow_color_became
+            self._tomorrowColorBecameCard.registerArgumentAutocompleteListener('target', async (query, args) => {
+              const q = (query || '').toString().toLowerCase();
+              if (!q) return TEMPO_COLOR_OPTIONS;
+              return TEMPO_COLOR_OPTIONS.filter(opt =>
+                opt.id.toLowerCase().includes(q) ||
+                (opt.name && opt.name.toLowerCase().includes(q))
+              );
+            });
+          }
+        } catch (e) {
+          self.error(`Failed to register trigger cards today_color_became / tomorrow_color_became: ${e && e.message ? e.message : e}`);
+        }
+
+        // Mémorise les dernières valeurs connues pour la période et les couleurs Tempo
         self._lastPeriod = self.getCapabilityValue('price_period_capability');
+        self._lastTodayColor = self.getCapabilityValue('today_color_capability');
+        self._lastTomorrowColor = self.getCapabilityValue('tomorrow_color_capability');
         // Timestamp du dernier changement de période effectivement appliqué (en ms, Date.now())
         self._lastPeriodChangeTs = 0;
 
@@ -246,6 +326,45 @@ class Device extends ZigBeeDevice {
             }
           } catch (e) {
             self.error(`update/trigger price_period_capability failed: ${e && e.message ? e.message : e}`);
+          }
+        };
+
+        // Helpers: mettent à jour les capabilities de couleur Tempo et déclenchent les Flows si besoin
+        self._updateTodayColorIfChanged = async (newValue) => {
+          try {
+            if (newValue === null || newValue === undefined) return;
+            const prev = self._lastTodayColor;
+            if (prev !== newValue) {
+              self.log(`[TODAY] Changement détecté: ${prev} -> ${newValue}`);
+              if (self._todayColorBecameCard) {
+                await self._todayColorBecameCard
+                  .trigger(self, { target: newValue }, { target: newValue })
+                  .catch(err => self.error('Error triggering today_color_became card:', err));
+              }
+              await self.setCapabilityValue('today_color_capability', newValue);
+              self._lastTodayColor = newValue;
+            }
+          } catch (e) {
+            self.error(`update/trigger today_color_capability failed: ${e && e.message ? e.message : e}`);
+          }
+        };
+
+        self._updateTomorrowColorIfChanged = async (newValue) => {
+          try {
+            if (newValue === null || newValue === undefined) return;
+            const prev = self._lastTomorrowColor;
+            if (prev !== newValue) {
+              self.log(`[TOMORROW] Changement détecté: ${prev} -> ${newValue}`);
+              if (self._tomorrowColorBecameCard) {
+                await self._tomorrowColorBecameCard
+                  .trigger(self, { target: newValue }, { target: newValue })
+                  .catch(err => self.error('Error triggering tomorrow_color_became card:', err));
+              }
+              await self.setCapabilityValue('tomorrow_color_capability', newValue);
+              self._lastTomorrowColor = newValue;
+            }
+          } catch (e) {
+            self.error(`update/trigger tomorrow_color_capability failed: ${e && e.message ? e.message : e}`);
           }
         };
 
@@ -350,18 +469,41 @@ class Device extends ZigBeeDevice {
 
             await self.setCapabilityValue('clock_full_hour_empty_hour_capability', clockFullHourEmptyHour);
             // N'actualise la capability que si on a une valeur normalisée valide
-            if (normTomorrow !== null) {
-              if (self.getCapabilityValue('tomorrow_color_capability') !== normTomorrow) {
-                self.log(`[TOMORROW] Raw='${tomorrowRaw}' -> Normalized='${normTomorrow}'`);
+            // Fallback API Tempo si aujourd'hui ET demain sont inconnus ('----')
+            try {
+              const todayUnknown = (normToday === null || normToday === '----');
+              const tomorrowUnknown = (normTomorrow === null || normTomorrow === '----');
+              if (todayUnknown) {
+                const apiColor = await self._fetchTempoTodayColor();
+                if (apiColor) {
+                  self.log(`[TEMPO API] Fallback utilisé, couleur de d'aujourd'hui depuis API: ${apiColor}`);
+                  normToday = apiColor;
+                } else {
+                  self.log('[TEMPO API] Fallback demandé mais aucune couleur valide retournée');
+                }
               }
-              await self.setCapabilityValue('tomorrow_color_capability', normTomorrow);
+
+              if (tomorrowUnknown) {
+                const apiColor = await self._fetchTempoTomorrowColor();
+                if (apiColor) {
+                  self.log(`[TEMPO API] Fallback utilisé, couleur de demain depuis API: ${apiColor}`);
+                  normTomorrow = apiColor;
+                } else {
+                  self.log('[TEMPO API] Fallback demandé mais aucune couleur valide retournée');
+                }
+              }
+            } catch (e) {
+              self.log(`[TEMPO API] Erreur lors du fallback: ${e && e.message ? e.message : e}`);
+            }
+
+            if (normTomorrow !== null) {
+              self.log(`[TOMORROW] Raw='${tomorrowRaw}' -> Normalized='${normTomorrow}'`);
+              await self._updateTomorrowColorIfChanged(normTomorrow);
             }
 
             if (normToday !== null) {
-              if (self.getCapabilityValue('today_color_capability') !== normToday) {
-                self.log(`[TODAY] Raw='${tomorrowRaw}' -> Normalized='${normToday}'`);
-              }
-              await self.setCapabilityValue('today_color_capability', normToday);
+              self.log(`[TODAY] Raw='${tomorrowRaw}' -> Normalized='${normToday}'`);
+              await self._updateTodayColorIfChanged(normToday);
             }
 
             await self.setCapabilityValue('alarm_subscribe_power_capability', subscribePowerAlert !== 0);
@@ -836,6 +978,157 @@ class Device extends ZigBeeDevice {
 }
 
 // Helpers
+// Appel API Tempo pour récupérer la couleur de demain, avec cache 30 minutes
+// Retourne 'BLEU' | 'BLAN' | 'ROUG' | '----' | null en cas d'erreur
+Device.prototype._fetchTempoTomorrowColor = async function() {
+  try {
+    const now = Date.now();
+    const THIRTY_MIN = 30 * 60 * 1000;
+
+    // Si le cache est encore valide, on le réutilise sans nouvel appel HTTP
+    if (tempoApiCache.timestamp && (now - tempoApiCache.timestamp) < THIRTY_MIN) {
+      this.log(`[TEMPO API] Utilisation du cache (age=${Math.round((now - tempoApiCache.timestamp) / 1000)}s)`);
+      return tempoApiCache.couleur;
+    }
+
+    this.log('[TEMPO API] Appel HTTP vers https://www.api-couleur-tempo.fr/api/jourTempo/tomorrow');
+    const response = await fetch('https://www.api-couleur-tempo.fr/api/jourTempo/tomorrow', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    if (!response.ok) {
+      this.error(`[TEMPO API] Réponse HTTP invalide: ${response.status} ${response.statusText}`);
+      // On met tout de même à jour le timestamp pour éviter de spammer l'API
+      tempoApiCache.timestamp = now;
+      tempoApiCache.couleur = null;
+      return null;
+    }
+
+    const data = await response.json();
+    // Exemple attendu : { "dateJour": "2024-11-08", "codeJour": 0, "periode": "2025-2026", "libCouleur": "Bleu" }
+    const libCouleur = data && data.libCouleur;
+    const codeJour = data && data.codeJour;
+
+    let couleur = null;
+    if (typeof libCouleur === 'string') {
+      const u = libCouleur.toUpperCase();
+      if (u.startsWith('BLEU')) couleur = 'BLEU';
+      else if (u.startsWith('BLAN')) couleur = 'BLAN';
+      else if (u.startsWith('ROUG') || u.startsWith('ROUGE')) couleur = 'ROUG';
+    }
+
+    // Fallback sur codeJour si jamais libCouleur n'est pas exploitable
+    if (!couleur && (codeJour === 0 || codeJour === 1 || codeJour === 2)) {
+      switch (codeJour) {
+        case 0:
+          couleur = 'BLEU';
+          break;
+        case 1:
+          couleur = 'BLAN';
+          break;
+        case 2:
+          couleur = 'ROUG';
+          break;
+        default:
+          couleur = null;
+      }
+    }
+
+    // Mise à jour du cache, même si couleur est null (pour respecter la limite d'appel)
+    tempoApiCache.timestamp = now;
+    tempoApiCache.couleur = couleur;
+
+    this.log(`[TEMPO API] Réponse parsée: dateJour=${data && data.dateJour}, codeJour=${codeJour}, libCouleur=${libCouleur}, couleurNormalisee=${couleur}`);
+    return couleur;
+  } catch (e) {
+    this.error(`[TEMPO API] Erreur lors de la récupération de la couleur: ${e && e.message ? e.message : e}`);
+    const now = Date.now();
+    // On enregistre quand même le timestamp pour ne pas surcharger l'API en cas d'erreur récurrente
+    tempoApiCache.timestamp = now;
+    return null;
+  }
+};
+
+// Appel API Tempo pour récupérer la couleur d'aujourd'hui, avec cache 30 minutes
+// Retourne 'BLEU' | 'BLAN' | 'ROUG' | '----' | null en cas d'erreur
+Device.prototype._fetchTempoTodayColor = async function() {
+  try {
+    const now = Date.now();
+    const THIRTY_MIN = 30 * 60 * 1000;
+
+    // Si le cache est encore valide, on le réutilise sans nouvel appel HTTP
+    if (tempoApiCache.timestamp && (now - tempoApiCache.timestamp) < THIRTY_MIN) {
+      this.log(`[TEMPO API] Utilisation du cache (age=${Math.round((now - tempoApiCache.timestamp) / 1000)}s)`);
+      return tempoApiCache.couleur;
+    }
+
+    this.log('[TEMPO API] Appel HTTP vers https://www.api-couleur-tempo.fr/api/jourTempo/today');
+    const response = await fetch('https://www.api-couleur-tempo.fr/api/jourTempo/today', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    if (!response.ok) {
+      this.error(`[TEMPO API] Réponse HTTP invalide: ${response.status} ${response.statusText}`);
+      // On met tout de même à jour le timestamp pour éviter de spammer l'API
+      tempoApiCache.timestamp = now;
+      tempoApiCache.couleur = null;
+      return null;
+    }
+
+    const data = await response.json();
+    // Exemple attendu : { "dateJour": "2024-11-08", "codeJour": 0, "periode": "2025-2026", "libCouleur": "Bleu" }
+    const libCouleur = data && data.libCouleur;
+    const codeJour = data && data.codeJour;
+
+    let couleur = null;
+    if (typeof libCouleur === 'string') {
+      const u = libCouleur.toUpperCase();
+      if (u.startsWith('BLEU')) couleur = 'BLEU';
+      else if (u.startsWith('BLAN')) couleur = 'BLAN';
+      else if (u.startsWith('ROUG') || u.startsWith('ROUGE')) couleur = 'ROUG';
+    }
+
+    // Fallback sur codeJour si jamais libCouleur n'est pas exploitable
+    if (!couleur && (codeJour === 0 || codeJour === 1 || codeJour === 2)) {
+      switch (codeJour) {
+        case 0:
+          couleur = 'BLEU';
+          break;
+        case 1:
+          couleur = 'BLAN';
+          break;
+        case 2:
+          couleur = 'ROUG';
+          break;
+        default:
+          couleur = null;
+      }
+    }
+
+    // Mise à jour du cache, même si couleur est null (pour respecter la limite d'appel)
+    tempoApiCache.timestamp = now;
+    tempoApiCache.couleur = couleur;
+
+    this.log(`[TEMPO API] Réponse parsée: dateJour=${data && data.dateJour}, codeJour=${codeJour}, libCouleur=${libCouleur}, couleurNormalisee=${couleur}`);
+    return couleur;
+  } catch (e) {
+    this.error(`[TEMPO API] Erreur lors de la récupération de la couleur: ${e && e.message ? e.message : e}`);
+    const now = Date.now();
+    // On enregistre quand même le timestamp pour ne pas surcharger l'API en cas d'erreur récurrente
+    tempoApiCache.timestamp = now;
+    return null;
+  }
+};
+
+// Helpers existants
 // Convertit une valeur de registre (number/hex/string) en entier non signé 32 bits
 // Retourne un number (0..0xFFFFFFFF) ou null si non parsable
 Device.prototype._parseRegisterToUint32 = function(reg) {

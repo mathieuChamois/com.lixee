@@ -1,16 +1,10 @@
-# LiXee
-LiXee est sous le régime de la micro-entreprise piloté par Frédéric DUBOIS. 
+### LiXee – Intégration ZLinky_TIC pour Homey
 
-LiXee est issue du développement du blog https://faire-ca-soi-meme.fr
+Cette application Homey permet de connecter votre module ZLinky_TIC à votre box Homey via Zigbee 3.0 afin de remonter en temps réel les données de votre compteur Linky (télé-information). Elle vous aide à suivre votre consommation et votre production d’électricité directement dans Homey.
 
-LiXee est une marque créée dans le but de promouvoir des objets 100% "maker".
+Une fois le ZLinky_TIC inclus dans Homey, vous pouvez :
+- visualiser les principales mesures du compteur (puissance instantanée, index, tarifs, etc.) ;
+- créer des flows pour automatiser votre maison en fonction de votre consommation (par exemple couper certains appareils au‑delà d’un seuil) ;
+- surveiller différents contrats Linky (BASE, HC/HP, Tempo, mono/tri ou production) selon le mode télé-information du compteur (historique ou standard).
 
-# ZLinky_TIC
-
-ZLinky_TIC est un appareil permettant de transmettre toutes les informations du compteur Linky en ZigBee 3.0.
-
-- Zlinky_TIC est alimenté par les bornes du compteur Linky
-- Il est compatible et respecte le protocole ZigBee 3.0
-- Il gère actuellement le mode historique et standard avec abonnement BASE / HCHP / Tempo en Mono ou Triphasé ou Production
-
-Attention, le module n'est pas compatible avec les Linky ISKRA ayant un port USB car il n' y a que 2 broches pour la téléinformation
+Remarque : le module ZLinky_TIC n’est pas compatible avec les compteurs Linky ISKRA disposant d’un port USB, car ils ne possèdent que 2 broches de télé-information.

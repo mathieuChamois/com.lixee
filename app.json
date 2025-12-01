@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.lixee",
-  "version": "1.3.1",
+  "version": "1.3.26",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "platforms": [
@@ -103,13 +103,24 @@
           {
             "type": "device",
             "name": "device",
+            "filter": "driver_id=zlinky_tic"
+          },
+          {
+            "name": "device",
+            "type": "device",
             "filter": "driver_id=zlinky_tic",
-            "title": { "en": "Device", "fr": "Appareil" }
+            "title": {
+              "en": "Device",
+              "fr": "Appareil"
+            }
           },
           {
             "name": "target",
             "type": "autocomplete",
-            "title": { "en": "Period", "fr": "Période" },
+            "title": {
+              "en": "Period",
+              "fr": "Période"
+            },
             "values": [
               {
                 "id": "TH..",
@@ -162,6 +173,112 @@
             ]
           }
         ]
+      },
+      {
+        "id": "today_color_became",
+        "title": {
+          "en": "Today color became ...",
+          "fr": "La couleur d'aujourd'hui devient ..."
+        },
+        "titleFormatted": {
+          "en": "Today color on [[device]] became [[target]]",
+          "fr": "La couleur d'aujourd'hui sur [[device]] devient [[target]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=zlinky_tic"
+          },
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=zlinky_tic",
+            "title": {
+              "en": "Device",
+              "fr": "Appareil"
+            }
+          },
+          {
+            "name": "target",
+            "type": "autocomplete",
+            "title": {
+              "en": "Color",
+              "fr": "Couleur"
+            },
+            "values": [
+              {
+                "id": "BLEU",
+                "name": "Bleu"
+              },
+              {
+                "id": "BLAN",
+                "name": "Blanc"
+              },
+              {
+                "id": "ROUG",
+                "name": "Rouge"
+              },
+              {
+                "id": "----",
+                "name": "Non connu"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tomorrow_color_became",
+        "title": {
+          "en": "Tomorrow color became ...",
+          "fr": "La couleur de demain devient ..."
+        },
+        "titleFormatted": {
+          "en": "Tomorrow color on [[device]] became [[target]]",
+          "fr": "La couleur de demain sur [[device]] devient [[target]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=zlinky_tic"
+          },
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=zlinky_tic",
+            "title": {
+              "en": "Device",
+              "fr": "Appareil"
+            }
+          },
+          {
+            "name": "target",
+            "type": "autocomplete",
+            "title": {
+              "en": "Color",
+              "fr": "Couleur"
+            },
+            "values": [
+              {
+                "id": "BLEU",
+                "name": "Bleu"
+              },
+              {
+                "id": "BLAN",
+                "name": "Blanc"
+              },
+              {
+                "id": "ROUG",
+                "name": "Rouge"
+              },
+              {
+                "id": "----",
+                "name": "Non connu"
+              }
+            ]
+          }
+        ]
       }
     ],
     "conditions": [
@@ -179,13 +296,24 @@
           {
             "type": "device",
             "name": "device",
+            "filter": "driver_id=zlinky_tic"
+          },
+          {
+            "name": "device",
+            "type": "device",
             "filter": "driver_id=zlinky_tic",
-            "title": { "en": "Device", "fr": "Appareil" }
+            "title": {
+              "en": "Device",
+              "fr": "Appareil"
+            }
           },
           {
             "name": "target",
             "type": "autocomplete",
-            "title": { "en": "Period", "fr": "Période" },
+            "title": {
+              "en": "Period",
+              "fr": "Période"
+            },
             "values": [
               {
                 "id": "TH..",
@@ -261,9 +389,16 @@
         "measure_power",
         "full_hour_capability",
         "empty_hour_capability",
+        "full_hour_blue_capability",
+        "empty_hour_blue_capability",
+        "full_hour_white_capability",
+        "empty_hour_white_capability",
+        "full_hour_red_capability",
+        "empty_hour_red_capability",
         "price_option_capability",
         "serial_number_capability",
         "price_period_capability",
+        "today_color_capability",
         "tomorrow_color_capability",
         "subscribe_intensity_capability",
         "alarm_subscribe_power_capability",
@@ -342,8 +477,8 @@
     "active_power_capability": {
       "type": "number",
       "title": {
-        "en": "Active power",
-        "fr": "Energie active"
+        "en": "Active energy",
+        "fr": "Énergie active"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -358,7 +493,7 @@
     "alarm_subscribe_power_capability": {
       "type": "boolean",
       "title": {
-        "en": "Subscribe power alert",
+        "en": "Subscribed power alert",
         "fr": "Alerte de puissance souscrite"
       },
       "getable": true,
@@ -372,7 +507,7 @@
       "type": "number",
       "title": {
         "en": "Injected instantaneous apparent power",
-        "fr": "Puissance app. Instantanée injectée"
+        "fr": "Puissance apparente instantanée injectée"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -387,8 +522,8 @@
     "clock_full_hour_empty_hour_capability": {
       "type": "enum",
       "title": {
-        "en": "Clock Full Hour Empty Hour",
-        "fr": "Horaire Heure Pleines Heures Creuses"
+        "en": "Full Hour / Off-Peak Hour Clock",
+        "fr": "Horloge Heures Pleines / Heures Creuses"
       },
       "values": [
         {
@@ -447,11 +582,75 @@
       "insights": false,
       "icon": "/assets/zap.svg"
     },
+    "empty_hour_blue_capability": {
+      "type": "number",
+      "title": {
+        "fr": "Heures creuses bleu",
+        "en": "Blue off-peak hours"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kwh"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/meter_power.svg"
+    },
     "empty_hour_capability": {
       "type": "number",
       "title": {
-        "fr": "Index Heure creuses",
-        "en": "Empty hour"
+        "fr": "Heures creuses",
+        "en": "Off-peak hour"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kwh"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/meter_power.svg"
+    },
+    "empty_hour_red_capability": {
+      "type": "number",
+      "title": {
+        "fr": "Heures creuses rouge",
+        "en": "Red off-peak hours"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kwh"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/meter_power.svg"
+    },
+    "empty_hour_white_capability": {
+      "type": "number",
+      "title": {
+        "fr": "Heures creuses blanc",
+        "en": "White off-peak hours"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kwh"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/meter_power.svg"
+    },
+    "full_hour_blue_capability": {
+      "type": "number",
+      "title": {
+        "fr": "Heures pleines bleu",
+        "en": "Blue peak hours"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -466,8 +665,40 @@
     "full_hour_capability": {
       "type": "number",
       "title": {
-        "fr": "Index Heure pleines",
-        "en": "Full hour"
+        "fr": "Heures pleines",
+        "en": "Peak hours"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kwh"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/meter_power.svg"
+    },
+    "full_hour_red_capability": {
+      "type": "number",
+      "title": {
+        "fr": "Heures pleines rouge",
+        "en": "Red peak hours"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "units": {
+        "en": "kwh"
+      },
+      "step": 0.5,
+      "insights": true,
+      "icon": "/assets/meter_power.svg"
+    },
+    "full_hour_white_capability": {
+      "type": "number",
+      "title": {
+        "fr": "Heures pleines blanc",
+        "en": "White peak hours"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -482,7 +713,7 @@
     "maximal_intensity_capability": {
       "type": "number",
       "title": {
-        "en": "Maximal intensity",
+        "en": "Maximum intensity",
         "fr": "Intensité maximale"
       },
       "uiComponent": "sensor",
@@ -511,7 +742,8 @@
     "phase_1_apparent_power_capability": {
       "type": "number",
       "title": {
-        "en": "Phase 1"
+        "en": "Phase 1",
+        "fr": "Phase 1"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -526,7 +758,8 @@
     "phase_2_apparent_power_capability": {
       "type": "number",
       "title": {
-        "en": "Phase 2"
+        "en": "Phase 2",
+        "fr": "Phase 2"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -541,7 +774,8 @@
     "phase_3_apparent_power_capability": {
       "type": "number",
       "title": {
-        "en": "Phase 3"
+        "en": "Phase 3",
+        "fr": "Phase 3"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -601,7 +835,7 @@
     "price_option_capability": {
       "type": "enum",
       "title": {
-        "en": "Price option",
+        "en": "Pricing option",
         "fr": "Option tarifaire"
       },
       "values": [
@@ -623,7 +857,7 @@
           "id": "HPHC",
           "title": {
             "en": "Full Hour Empty Hour",
-            "fr": "Heures Pleines Heures Creuses"
+            "fr": "H. Pleines H. Creuses"
           }
         },
         {
@@ -635,6 +869,13 @@
         },
         {
           "id": "BBR",
+          "title": {
+            "en": "Tempo Option",
+            "fr": "Option Tempo"
+          }
+        },
+        {
+          "id": "TEMPO",
           "title": {
             "en": "Tempo Option",
             "fr": "Option Tempo"
@@ -665,78 +906,78 @@
         {
           "id": "TH..",
           "title": {
-            "en": "Every Hours",
-            "fr": "Toutes les Heures"
+            "en": "Every hour",
+            "fr": "Toutes les heures"
           }
         },
         {
           "id": "HC..",
           "title": {
-            "en": "Empty Hours",
-            "fr": "Heures Creuses"
+            "en": "Off-peak hours",
+            "fr": "Heures creuses"
           }
         },
         {
           "id": "HP..",
           "title": {
-            "en": "Full Hours",
-            "fr": "Heures Pleines"
+            "en": "Peak hours",
+            "fr": "Heures pleines"
           }
         },
         {
           "id": "HN..",
           "title": {
-            "en": "Regular Hours",
-            "fr": "Heures Normales"
+            "en": "Regular hours",
+            "fr": "Heures normales"
           }
         },
         {
           "id": "PM..",
           "title": {
-            "en": "Mobil point hours",
-            "fr": "Heures de Pointe Mobile"
+            "en": "Mobile peak hours",
+            "fr": "Heures de pointe mobile"
           }
         },
         {
           "id": "HCJB",
           "title": {
-            "en": "Empty Hours Blue Days",
-            "fr": "Heures Creuses Jours Bleus"
+            "en": "Off-peak hours on Blue days",
+            "fr": "Heures creuses jours bleus"
           }
         },
         {
           "id": "HCJW",
           "title": {
-            "en": "Empty Hours White Days",
-            "fr": "Heures Creuses Jours Blancs"
+            "en": "Off-peak hours on White days",
+            "fr": "Heures creuses jours blancs"
           }
         },
         {
           "id": "HCJR",
           "title": {
-            "en": "Empty Hours Red Days",
-            "fr": "Heures Creuses Jours Rouges"
+            "en": "Off-peak hours on Red days",
+            "fr": "Heures creuses jours rouges"
           }
         },
         {
           "id": "HPJB",
           "title": {
-            "en": "Full Hours Blue Days",
-            "fr": "Heures Pleines Jours Bleus"
+            "en": "Peak hours on Blue days",
+            "fr": "Heures pleines jours bleus"
           }
         },
         {
           "id": "HPJW",
           "title": {
-            "en": "Full Hours White Days",
-            "fr": "Heures Pleines Jours Blancs"
+            "en": "Peak hours on White days",
+            "fr": "Heures pleines jours blancs"
           }
         },
         {
           "id": "HPJR",
           "title": {
-            "en": "Full Hours Red Days",
-            "fr": "Heures Pleines Jours Rouges"
+            "en": "Peak hours on Red days",
+            "fr": "Heures pleines jours rouges"
           }
         },
         {
@@ -771,7 +1012,7 @@
       "type": "number",
       "title": {
         "en": "RMS current",
-        "fr": "Valeur efficace courant"
+        "fr": "Courant efficace"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -787,7 +1028,7 @@
       "type": "number",
       "title": {
         "en": "RMS voltage",
-        "fr": "Valeur efficace tension"
+        "fr": "Tension efficace"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -815,7 +1056,7 @@
     "subscribe_intensity_capability": {
       "type": "number",
       "title": {
-        "en": "Subscribe intensity",
+        "en": "Subscribed current",
         "fr": "Intensité souscrite"
       },
       "uiComponent": "sensor",
@@ -831,7 +1072,8 @@
     "summation_delivered_capability": {
       "type": "number",
       "title": {
-        "en": "Summation delivered"
+        "en": "Summation delivered",
+        "fr": "Énergie livrée"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -843,25 +1085,75 @@
       "insights": true,
       "icon": "/assets/zap.svg"
     },
+    "today_color_capability": {
+      "type": "enum",
+      "title": {
+        "en": "Today",
+        "fr": "Aujourd'hui"
+      },
+      "values": [
+        {
+          "id": "",
+          "title": {
+            "en": "Unknown",
+            "fr": "Inconnue"
+          }
+        },
+        {
+          "id": "----",
+          "title": {
+            "en": "Unknown",
+            "fr": "Inconnue"
+          }
+        },
+        {
+          "id": "BLEU",
+          "title": {
+            "en": "Blue",
+            "fr": "Bleu"
+          }
+        },
+        {
+          "id": "BLAN",
+          "title": {
+            "en": "White",
+            "fr": "Blanc"
+          }
+        },
+        {
+          "id": "ROUG",
+          "title": {
+            "en": "Red",
+            "fr": "Rouge"
+          }
+        }
+      ],
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": true,
+      "step": 0.5,
+      "insights": false,
+      "icon": "/assets/sun.svg"
+    },
     "tomorrow_color_capability": {
       "type": "enum",
       "title": {
-        "en": "Tomorrow color",
+        "en": "Tomorrow",
         "fr": "Demain"
       },
       "values": [
         {
           "id": "",
           "title": {
-            "en": "Unkown",
-            "fr": "Non Connue"
+            "en": "Unknown",
+            "fr": "Inconnue"
           }
         },
         {
           "id": "----",
           "title": {
-            "en": "Unkown",
-            "fr": "Non Connue"
+            "en": "Unknown",
+            "fr": "Inconnue"
           }
         },
         {

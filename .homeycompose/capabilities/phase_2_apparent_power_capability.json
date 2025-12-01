@@ -1,6 +1,9 @@
 {
   "type": "number",
-  "title": { "en": "Phase 2" },
+  "title": {
+    "en": "Phase 2",
+    "fr": "Phase 2"
+  },
   "uiComponent": "sensor",
   "getable": true,
   "setable": true,

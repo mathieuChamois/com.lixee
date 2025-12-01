@@ -2,7 +2,7 @@
   "type": "number",
   "title": {
     "en": "RMS current",
-    "fr": "Valeur efficace courant"
+    "fr": "Courant efficace"
   },
   "uiComponent": "sensor",
   "getable": true,

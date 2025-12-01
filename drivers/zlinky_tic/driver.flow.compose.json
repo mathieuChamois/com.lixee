@@ -49,6 +49,46 @@
           { "id": "UNKN", "name": "Inconnu" }
         ]}
       ]
+    },
+    {
+      "id": "today_color_became",
+      "title": {
+        "en": "Today color became ...",
+        "fr": "La couleur d'aujourd'hui devient ..."
+      },
+      "titleFormatted": {
+        "en": "Today color on [[device]] became [[target]]",
+        "fr": "La couleur d'aujourd'hui sur [[device]] devient [[target]]"
+      },
+      "args": [
+        { "name": "device", "type": "device", "filter": "driver_id=zlinky_tic", "title": { "en": "Device", "fr": "Appareil" } },
+        { "name": "target", "type": "autocomplete", "title": { "en": "Color", "fr": "Couleur" }, "values": [
+          { "id": "BLEU", "name": "Bleu" },
+          { "id": "BLAN", "name": "Blanc" },
+          { "id": "ROUG", "name": "Rouge" },
+          { "id": "----", "name": "Non connu" }
+        ]}
+      ]
+    },
+    {
+      "id": "tomorrow_color_became",
+      "title": {
+        "en": "Tomorrow color became ...",
+        "fr": "La couleur de demain devient ..."
+      },
+      "titleFormatted": {
+        "en": "Tomorrow color on [[device]] became [[target]]",
+        "fr": "La couleur de demain sur [[device]] devient [[target]]"
+      },
+      "args": [
+        { "name": "device", "type": "device", "filter": "driver_id=zlinky_tic", "title": { "en": "Device", "fr": "Appareil" } },
+        { "name": "target", "type": "autocomplete", "title": { "en": "Color", "fr": "Couleur" }, "values": [
+          { "id": "BLEU", "name": "Bleu" },
+          { "id": "BLAN", "name": "Blanc" },
+          { "id": "ROUG", "name": "Rouge" },
+          { "id": "----", "name": "Non connu" }
+        ]}
+      ]
     }
   ],
   "conditions": [

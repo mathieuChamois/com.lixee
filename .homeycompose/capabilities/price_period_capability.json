@@ -8,78 +8,78 @@
     {
       "id": "TH..",
       "title": {
-        "en": "Every Hours",
-        "fr": "Toutes les Heures"
+        "en": "Every hour",
+        "fr": "Toutes les heures"
       }
     },
     {
       "id": "HC..",
       "title": {
-        "en": "Empty Hours",
-        "fr": "Heures Creuses"
+        "en": "Off-peak hours",
+        "fr": "Heures creuses"
       }
     },
     {
       "id": "HP..",
       "title": {
-        "en": "Full Hours",
-        "fr": "Heures Pleines"
+        "en": "Peak hours",
+        "fr": "Heures pleines"
       }
     },
     {
       "id": "HN..",
       "title": {
-        "en": "Regular Hours",
-        "fr": "Heures Normales"
+        "en": "Regular hours",
+        "fr": "Heures normales"
       }
     },
     {
       "id": "PM..",
       "title": {
-        "en": "Mobil point hours",
-        "fr": "Heures de Pointe Mobile"
+        "en": "Mobile peak hours",
+        "fr": "Heures de pointe mobile"
       }
     },
     {
       "id": "HCJB",
       "title": {
-        "en": "Empty Hours Blue Days",
-        "fr": "Heures Creuses Jours Bleus"
+        "en": "Off-peak hours on Blue days",
+        "fr": "Heures creuses jours bleus"
       }
     },
     {
       "id": "HCJW",
       "title": {
-        "en": "Empty Hours White Days",
-        "fr": "Heures Creuses Jours Blancs"
+        "en": "Off-peak hours on White days",
+        "fr": "Heures creuses jours blancs"
       }
     },
     {
       "id": "HCJR",
       "title": {
-        "en": "Empty Hours Red Days",
-        "fr": "Heures Creuses Jours Rouges"
+        "en": "Off-peak hours on Red days",
+        "fr": "Heures creuses jours rouges"
       }
     },
     {
       "id": "HPJB",
       "title": {
-        "en": "Full Hours Blue Days",
-        "fr": "Heures Pleines Jours Bleus"
+        "en": "Peak hours on Blue days",
+        "fr": "Heures pleines jours bleus"
       }
     },
     {
       "id": "HPJW",
       "title": {
-        "en": "Full Hours White Days",
-        "fr": "Heures Pleines Jours Blancs"
+        "en": "Peak hours on White days",
+        "fr": "Heures pleines jours blancs"
       }
     },
     {
       "id": "HPJR",
       "title": {
-        "en": "Full Hours Red Days",
-        "fr": "Heures Pleines Jours Rouges"
+        "en": "Peak hours on Red days",
+        "fr": "Heures pleines jours rouges"
       }
     },
     {

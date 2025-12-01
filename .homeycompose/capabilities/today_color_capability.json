@@ -1,8 +1,8 @@
 {
   "type": "enum",
   "title": {
-    "en": "Tomorrow",
-    "fr": "Demain"
+    "en": "Today",
+    "fr": "Aujourd'hui"
   },
   "values": [
     {

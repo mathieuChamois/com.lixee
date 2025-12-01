@@ -121,5 +121,80 @@
   },
   "1.3.1": {
     "en": "merge standard and historique meter process"
+  },
+  "1.3.2": {
+    "en": "add flow card period_price"
+  },
+  "1.3.3": {
+    "en": "add flow card period_price"
+  },
+  "1.3.4": {
+    "en": "add card price option and period price and normalize DEMAIN"
+  },
+  "1.3.5": {
+    "en": "Add DEMAIN for standard"
+  },
+  "1.3.6": {
+    "en": "fix missing update price_option"
+  },
+  "1.3.7": {
+    "en": "try to detect DEMAIN standard color"
+  },
+  "1.3.8": {
+    "en": "rollback meter process"
+  },
+  "1.3.9": {
+    "en": "remove fallback for standard DEMAIN"
+  },
+  "1.3.10": {
+    "en": "change bits for DEMAIN"
+  },
+  "1.3.11": {
+    "en": "use periodPrice instead of hard code"
+  },
+  "1.3.12": {
+    "en": "skip TH for BBR"
+  },
+  "1.3.13": {
+    "en": "use price option from zlinky"
+  },
+  "1.3.14": {
+    "en": "lock period price for 20s after a change"
+  },
+  "1.3.15": {
+    "en": "debug color again"
+  },
+  "1.3.16": {
+    "en": "add logs and check hp hc for base contract"
+  },
+  "1.3.17": {
+    "en": "add TEMPO to map price option and more debug"
+  },
+  "1.3.18": {
+    "en": "use raw value for register status"
+  },
+  "1.3.19": {
+    "en": "add today color, add cumulative index for no base contract, and use correct register status"
+  },
+  "1.3.20": {
+    "en": "delete twice call for demain and today"
+  },
+  "1.3.21": {
+    "en": "set today color for historique and change order in ui for today"
+  },
+  "1.3.22": {
+    "en": "always change color value"
+  },
+  "1.3.23": {
+    "en": "divide by 1000"
+  },
+  "1.3.24": {
+    "en": "wrong mode for mode 5"
+  },
+  "1.3.25": {
+    "en": "add index blue red and white and rewording some capabilities"
+  },
+  "1.3.26": {
+    "en": "refresh correctly hphc and tempo"
   }
 }

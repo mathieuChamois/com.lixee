@@ -1,7 +1,7 @@
 {
   "type": "enum",
   "title": {
-    "en": "Price option",
+    "en": "Pricing option",
     "fr": "Option tarifaire"
   },
   "values": [
@@ -23,7 +23,7 @@
       "id": "HPHC",
       "title": {
         "en": "Full Hour Empty Hour",
-        "fr": "Heures Pleines Heures Creuses"
+        "fr": "H. Pleines H. Creuses"
       }
     },
     {
@@ -35,6 +35,13 @@
     },
     {
       "id": "BBR",
+      "title": {
+        "en": "Tempo Option",
+        "fr": "Option Tempo"
+      }
+    },
+    {
+      "id": "TEMPO",
       "title": {
         "en": "Tempo Option",
         "fr": "Option Tempo"

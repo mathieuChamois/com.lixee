@@ -1,8 +1,8 @@
 {
   "type": "number",
   "title": {
-    "fr": "Index Heure creuses",
-    "en": "Empty hour"
+    "fr": "Heures creuses",
+    "en": "Off-peak hour"
   },
   "uiComponent": "sensor",
   "getable": true,

@@ -1,8 +1,8 @@
 {
   "type": "number",
   "title": {
-    "en": "Active power",
-    "fr": "Energie active"
+    "en": "Active energy",
+    "fr": "Énergie active"
   },
   "uiComponent": "sensor",
   "getable": true,

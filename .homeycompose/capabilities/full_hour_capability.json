@@ -1,8 +1,8 @@
 {
   "type": "number",
   "title": {
-    "fr": "Index Heure pleines",
-    "en": "Full hour"
+    "fr": "Heures pleines",
+    "en": "Peak hours"
   },
   "uiComponent": "sensor",
   "getable": true,

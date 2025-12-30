@@ -199,5 +199,11 @@
   },
   "1.4.0": {
     "en": "Improve Tempo and HPHC"
+  },
+  "1.4.1": {
+    "en": "fix cache color"
+  },
+  "1.4.2": {
+    "en": "fix cache color"
   }
 }

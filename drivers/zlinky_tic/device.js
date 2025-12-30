@@ -28,11 +28,21 @@ var hcWhiteLastValue = 0;
 var hpRedLastValue = 0;
 var hcRedLastValue = 0;
 
-// Cache global pour l'API couleur Tempo afin de limiter les appels (au plus 1 toutes les 30 minutes)
-// Structure: { timestamp: number (ms depuis epoch), couleur: 'BLEU'|'BLAN'|'ROUG'|'----' }
+// Cache global pour l'API couleur Tempo (au plus 1 appel toutes les 30 minutes)
+// On sépare les caches pour today et tomorrow afin d'éviter les collisions
+// Structure: {
+//   today:    { timestamp: number, couleur: 'BLEU'|'BLAN'|'ROUG'|'----'|null },
+//   tomorrow: { timestamp: number, couleur: 'BLEU'|'BLAN'|'ROUG'|'----'|null }
+// }
 const tempoApiCache = {
-  timestamp: 0,
-  couleur: null
+  today: {
+    timestamp: 0,
+    couleur: null
+  },
+  tomorrow: {
+    timestamp: 0,
+    couleur: null
+  }
 };
 
 class Device extends ZigBeeDevice {
@@ -986,9 +996,9 @@ Device.prototype._fetchTempoTomorrowColor = async function() {
     const THIRTY_MIN = 30 * 60 * 1000;
 
     // Si le cache est encore valide, on le réutilise sans nouvel appel HTTP
-    if (tempoApiCache.timestamp && (now - tempoApiCache.timestamp) < THIRTY_MIN) {
-      this.log(`[TEMPO API] Utilisation du cache (age=${Math.round((now - tempoApiCache.timestamp) / 1000)}s)`);
-      return tempoApiCache.couleur;
+    if (tempoApiCache.tomorrow.timestamp && (now - tempoApiCache.tomorrow.timestamp) < THIRTY_MIN) {
+      this.log(`[TEMPO API] [tomorrow] Utilisation du cache (age=${Math.round((now - tempoApiCache.tomorrow.timestamp) / 1000)}s)`);
+      return tempoApiCache.tomorrow.couleur;
     }
 
     this.log('[TEMPO API] Appel HTTP vers https://www.api-couleur-tempo.fr/api/jourTempo/tomorrow');
@@ -1003,8 +1013,8 @@ Device.prototype._fetchTempoTomorrowColor = async function() {
     if (!response.ok) {
       this.error(`[TEMPO API] Réponse HTTP invalide: ${response.status} ${response.statusText}`);
       // On met tout de même à jour le timestamp pour éviter de spammer l'API
-      tempoApiCache.timestamp = now;
-      tempoApiCache.couleur = null;
+      tempoApiCache.tomorrow.timestamp = now;
+      tempoApiCache.tomorrow.couleur = null;
       return null;
     }
 
@@ -1039,8 +1049,8 @@ Device.prototype._fetchTempoTomorrowColor = async function() {
     }
 
     // Mise à jour du cache, même si couleur est null (pour respecter la limite d'appel)
-    tempoApiCache.timestamp = now;
-    tempoApiCache.couleur = couleur;
+    tempoApiCache.tomorrow.timestamp = now;
+    tempoApiCache.tomorrow.couleur = couleur;
 
     this.log(`[TEMPO API] Réponse parsée: dateJour=${data && data.dateJour}, codeJour=${codeJour}, libCouleur=${libCouleur}, couleurNormalisee=${couleur}`);
     return couleur;
@@ -1048,7 +1058,7 @@ Device.prototype._fetchTempoTomorrowColor = async function() {
     this.error(`[TEMPO API] Erreur lors de la récupération de la couleur: ${e && e.message ? e.message : e}`);
     const now = Date.now();
     // On enregistre quand même le timestamp pour ne pas surcharger l'API en cas d'erreur récurrente
-    tempoApiCache.timestamp = now;
+    tempoApiCache.tomorrow.timestamp = now;
     return null;
   }
 };
@@ -1061,9 +1071,9 @@ Device.prototype._fetchTempoTodayColor = async function() {
     const THIRTY_MIN = 30 * 60 * 1000;
 
     // Si le cache est encore valide, on le réutilise sans nouvel appel HTTP
-    if (tempoApiCache.timestamp && (now - tempoApiCache.timestamp) < THIRTY_MIN) {
-      this.log(`[TEMPO API] Utilisation du cache (age=${Math.round((now - tempoApiCache.timestamp) / 1000)}s)`);
-      return tempoApiCache.couleur;
+    if (tempoApiCache.today.timestamp && (now - tempoApiCache.today.timestamp) < THIRTY_MIN) {
+      this.log(`[TEMPO API] [today] Utilisation du cache (age=${Math.round((now - tempoApiCache.today.timestamp) / 1000)}s)`);
+      return tempoApiCache.today.couleur;
     }
 
     this.log('[TEMPO API] Appel HTTP vers https://www.api-couleur-tempo.fr/api/jourTempo/today');
@@ -1078,8 +1088,8 @@ Device.prototype._fetchTempoTodayColor = async function() {
     if (!response.ok) {
       this.error(`[TEMPO API] Réponse HTTP invalide: ${response.status} ${response.statusText}`);
       // On met tout de même à jour le timestamp pour éviter de spammer l'API
-      tempoApiCache.timestamp = now;
-      tempoApiCache.couleur = null;
+      tempoApiCache.today.timestamp = now;
+      tempoApiCache.today.couleur = null;
       return null;
     }
 
@@ -1114,8 +1124,8 @@ Device.prototype._fetchTempoTodayColor = async function() {
     }
 
     // Mise à jour du cache, même si couleur est null (pour respecter la limite d'appel)
-    tempoApiCache.timestamp = now;
-    tempoApiCache.couleur = couleur;
+    tempoApiCache.today.timestamp = now;
+    tempoApiCache.today.couleur = couleur;
 
     this.log(`[TEMPO API] Réponse parsée: dateJour=${data && data.dateJour}, codeJour=${codeJour}, libCouleur=${libCouleur}, couleurNormalisee=${couleur}`);
     return couleur;
@@ -1123,7 +1133,7 @@ Device.prototype._fetchTempoTodayColor = async function() {
     this.error(`[TEMPO API] Erreur lors de la récupération de la couleur: ${e && e.message ? e.message : e}`);
     const now = Date.now();
     // On enregistre quand même le timestamp pour ne pas surcharger l'API en cas d'erreur récurrente
-    tempoApiCache.timestamp = now;
+    tempoApiCache.today.timestamp = now;
     return null;
   }
 };

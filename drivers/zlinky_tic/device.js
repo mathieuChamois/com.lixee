@@ -1287,6 +1287,8 @@ Device.prototype._updatePriceOptionIfChanged = async function(newValue) {
     let val = newValue;
     if (val === 'BBRx') val = 'BBR';
     if (val === 'HC..') val = 'HPHC';
+    if (val === 'H PLEINE/CREUSE') val = 'HPHC';
+
     const VALID = ['BASE', 'TEMPO', 'HC..', 'HPHC', 'EJP.', 'BBR', 'UNKN'];
     if (!VALID.includes(val)) val = 'UNKN';
 

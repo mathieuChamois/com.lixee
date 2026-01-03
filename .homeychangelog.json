@@ -205,5 +205,8 @@
   },
   "1.4.2": {
     "en": "fix cache color"
+  },
+  "1.4.3": {
+    "en": "add value for standard HPHC"
   }
 }

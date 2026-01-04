@@ -895,7 +895,7 @@ class Device extends ZigBeeDevice {
             await this.removeCapability('empty_hour_capability')
               .catch(this.error);
 
-            if (priceOption == 'HC..' || priceOption == 'HP..') {
+            if (priceOption == 'HC..' || priceOption == 'HP..' || priceOption == 'HPHC' || priceOption == 'BBR' || priceOption == 'EJP') {
               await this.addCapability('full_hour_capability')
                 .catch(this.error);
               await this.addCapability('empty_hour_capability')

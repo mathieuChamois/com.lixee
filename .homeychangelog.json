@@ -208,5 +208,8 @@
   },
   "1.4.3": {
     "en": "add value for standard HPHC"
+  },
+  "1.4.4": {
+    "en": "add full and empty capability for index HPHC"
   }
 }

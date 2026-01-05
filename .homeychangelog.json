@@ -211,5 +211,8 @@
   },
   "1.4.4": {
     "en": "add full and empty capability for index HPHC"
+  },
+  "1.4.5": {
+    "en": "fix injected apparent power and meter_power.exported"
   }
 }

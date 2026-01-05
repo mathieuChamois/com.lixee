@@ -605,8 +605,8 @@ class Device extends ZigBeeDevice {
               .clusters[CLUSTER.METERING.NAME]
               .readAttributes([
                 'currentSummationDelivered',
-                'serialNumber',
-                'pricePeriod'
+                'activeEnergyTotalInjected',
+                'serialNumber'
               ]);
 
             await self.setCapabilityValue('serial_number_capability', serialNumber);
@@ -767,7 +767,8 @@ class Device extends ZigBeeDevice {
               currentSummationDeliveredHCR = Math.floor((currentSummationDeliveredHCR ?? 0) / 1000);
               await self.setCapabilityValue('empty_hour_red_capability', currentSummationDeliveredHCR);
             }
-            await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ?? 0);
+
+            await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ? (activeEnergyTotalInjected / 1000) : 0);
 
             self.log(`Cluster metering return response correctly`);
           } catch (e) {

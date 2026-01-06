@@ -217,5 +217,8 @@
   },
   "1.4.6": {
     "en": "fix instant power injected value"
+  },
+  "1.4.7": {
+    "en": "fix specific HPHC value"
   }
 }

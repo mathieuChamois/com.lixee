@@ -214,5 +214,8 @@
   },
   "1.4.5": {
     "en": "fix injected apparent power and meter_power.exported"
+  },
+  "1.4.6": {
+    "en": "fix instant power injected value"
   }
 }

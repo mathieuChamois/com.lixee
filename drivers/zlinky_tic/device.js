@@ -459,7 +459,7 @@ class Device extends ZigBeeDevice {
                 // Plus de fallback en mode standard: on log l'erreur et on n'écrase pas la valeur courante
                 self.log(`[WARN] registerStatus read failed (standard mode, no fallback): ${e && e.message ? e.message : e}`);
               }
-              await self.setCapabilityValue('apparent_power_instant_inject_capability', apparentPowerInstInject);
+              await self.setCapabilityValue('apparent_power_instant_inject_capability', apparentPowerInstInject ? (apparentPowerInstInject / 1000) : 0);
             } else {
               // Mode historique/Tempo: lecture tomorrowColor (texte) puis normalisation
               try {

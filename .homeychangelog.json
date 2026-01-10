@@ -220,5 +220,8 @@
   },
   "1.4.7": {
     "en": "fix specific HPHC value"
+  },
+  "1.4.8": {
+    "en": "remove divided by 1000 on apparent_power_instant_inject_capability"
   }
 }

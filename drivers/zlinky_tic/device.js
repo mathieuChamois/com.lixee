@@ -559,14 +559,6 @@ class Device extends ZigBeeDevice {
               phase3ApparentPower = 0;
             }
 
-            if (self.hasCapability('debug_capability')) {
-              const currentDebugValue = self.getCapabilityValue('debug_capability') || '';
-              const debugPhaseSuffix = ` - ${self.getCapabilityValue('phase_capability')} - ${phase2ApparentPower} - ${phase3ApparentPower}`;
-              if (!currentDebugValue.endsWith(debugPhaseSuffix)) {
-                await self.setCapabilityValue('debug_capability', `${currentDebugValue}${debugPhaseSuffix}`);
-              }
-            }
-
             if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase' && phase2ApparentPower == 0 && phase3ApparentPower == 0) {
               if (self.hasCapability('phase_1_apparent_power_capability')) {
                 await self.removeCapability('phase_1_apparent_power_capability')
@@ -1309,6 +1301,15 @@ Device.prototype._updatePriceOptionIfChanged = async function(newValue) {
     if (val === 'BBRx') val = 'BBR';
     if (val === 'HC..') val = 'HPHC';
     if (val === 'H PLEINE/CREUSE') val = 'HPHC';
+
+    if (this.hasCapability('debug_capability')) {
+      const currentDebugValue = this.getCapabilityValue('debug_capability') || '';
+      const debugPriceSuffix = `-${val}`;
+      const cleanedDebugValue = currentDebugValue.replace(/-(?:BASE|TEMPO|HC\.\.|HPHC|EJP\.|BBR|UNKN)$/, '');
+      if (!cleanedDebugValue.endsWith(debugPriceSuffix)) {
+        await this.setCapabilityValue('debug_capability', `${cleanedDebugValue}${debugPriceSuffix}`);
+      }
+    }
 
     const VALID = ['BASE', 'TEMPO', 'HC..', 'HPHC', 'EJP.', 'BBR', 'UNKN'];
     if (!VALID.includes(val)) val = 'UNKN';

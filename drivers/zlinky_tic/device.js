@@ -52,6 +52,7 @@ class Device extends ZigBeeDevice {
     this.printNode();
     const self = this;
 
+    this.log('demarrage de l\'initialisation du driver');
     await doInit();
 
     async function doInit() {
@@ -69,6 +70,8 @@ class Device extends ZigBeeDevice {
           self.log('[INFO] priceOption vide, on attend la prochaine fenêtre de rafraîchissement');
           return;
         }
+
+        self.log('[INFO] priceOption est ' + priceOption.toString());
 
         await self.prepareMode(await self.getMode(zclNode), await priceOption);
 
@@ -556,6 +559,14 @@ class Device extends ZigBeeDevice {
               phase3ApparentPower = 0;
             }
 
+            if (self.hasCapability('debug_capability')) {
+              const currentDebugValue = self.getCapabilityValue('debug_capability') || '';
+              const debugPhaseSuffix = ` - ${self.getCapabilityValue('phase_capability')} - ${phase2ApparentPower} - ${phase3ApparentPower}`;
+              if (!currentDebugValue.endsWith(debugPhaseSuffix)) {
+                await self.setCapabilityValue('debug_capability', `${currentDebugValue}${debugPhaseSuffix}`);
+              }
+            }
+
             if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase' && phase2ApparentPower == 0 && phase3ApparentPower == 0) {
               if (self.hasCapability('phase_1_apparent_power_capability')) {
                 await self.removeCapability('phase_1_apparent_power_capability')
@@ -872,8 +883,10 @@ class Device extends ZigBeeDevice {
   }
 
   async prepareMode(currentMode, priceOption) {
-    this.log(`Current mode: ${currentMode.mode}`);
+    this.log(`[INFO] Current mode: ${currentMode.mode}`);
     const explodedMode = this.decodeMode(currentMode.mode);
+    this.log(`[INFO] Decoded mode: ${explodedMode.join('_')}`);
+    this.log(`[INFO] Price option: ${priceOption}`);
 
     await this.removeCapability('meter_power.imported')
       .catch(this.error);
@@ -986,7 +999,10 @@ class Device extends ZigBeeDevice {
               .catch(this.error);
             await this.addCapability('debug_capability')
               .catch(this.error);
-            await this.setCapabilityValue('debug_capability', String(currentMode.mode));
+            await this.setCapabilityValue(
+              'debug_capability',
+              `${String(currentMode.mode)}-${explodedMode.join('_')}-${priceOption}`
+            );
           });
       });
   }

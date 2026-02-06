@@ -1296,11 +1296,20 @@ Device.prototype._updatePriceOptionIfChanged = async function(newValue) {
     if (!this.hasCapability('price_option_capability')) return;
     if (!newValue) return;
 
+    this.log('[INFO] priceOption avant' + newValue);
+
     // normalisation minimale
-    let val = newValue;
+    let val = String(newValue).replace(/\0/g, '').trim();
+
+    this.log('[INFO] priceOption apres' + newValue);
+
+    if (!val) return;
     if (val === 'BBRx') val = 'BBR';
     if (val === 'HC..') val = 'HPHC';
     if (val === 'H PLEINE/CREUSE') val = 'HPHC';
+
+    const VALID = ['BASE', 'TEMPO', 'HC..', 'HPHC', 'EJP.', 'BBR'];
+    if (!VALID.includes(val)) val = 'UNKN';
 
     if (this.hasCapability('debug_capability')) {
       const currentDebugValue = this.getCapabilityValue('debug_capability') || '';
@@ -1310,9 +1319,6 @@ Device.prototype._updatePriceOptionIfChanged = async function(newValue) {
         await this.setCapabilityValue('debug_capability', `${cleanedDebugValue}${debugPriceSuffix}`);
       }
     }
-
-    const VALID = ['BASE', 'TEMPO', 'HC..', 'HPHC', 'EJP.', 'BBR', 'UNKN'];
-    if (!VALID.includes(val)) val = 'UNKN';
 
     const prev = this.getCapabilityValue('price_option_capability');
     if (prev !== val) {

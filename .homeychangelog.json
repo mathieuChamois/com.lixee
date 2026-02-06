@@ -223,5 +223,8 @@
   },
   "1.4.8": {
     "en": "remove divided by 1000 on apparent_power_instant_inject_capability"
+  },
+  "1.4.9": {
+    "en": "add more debug"
   }
 }

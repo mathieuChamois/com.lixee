@@ -229,5 +229,9 @@
   },
   "1.4.10": {
     "en": "add more debug again"
+  },
+  "1.5.0": {
+    "en": "Add ZiPulses support (pulse counter for electricity, water and gas meters). Compatible with Power by the Hour and Homey Energy tab.",
+    "fr": "Ajout du support ZiPulses (compteur d'impulsions pour compteurs électricité, eau et gaz). Compatible Power by the Hour et onglet Énergie Homey."
   }
 }

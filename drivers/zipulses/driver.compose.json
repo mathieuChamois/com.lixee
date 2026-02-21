@@ -1,0 +1,154 @@
+{
+  "name": {
+    "en": "ZiPulses",
+    "fr": "ZiPulses"
+  },
+  "class": "sensor",
+  "platforms": ["local"],
+  "connectivity": ["zigbee"],
+  "capabilities": [
+    "meter_pulse_capability",
+    "meter_pulse_raw_capability",
+    "measure_temperature",
+    "measure_battery",
+    "alarm_battery"
+  ],
+  "capabilitiesOptions": {
+    "meter_pulse_capability": {
+      "title": {
+        "en": "Index",
+        "fr": "Index"
+      }
+    },
+    "meter_pulse_raw_capability": {
+      "title": {
+        "en": "Raw Pulses",
+        "fr": "Impulsions brutes"
+      }
+    },
+    "measure_temperature": {
+      "title": {
+        "en": "Temperature",
+        "fr": "Température"
+      }
+    }
+  },
+  "energy": {
+    "batteries": ["CR2450"]
+  },
+  "images": {
+    "small": "{{driverAssetsPath}}/images/small.png",
+    "large": "{{driverAssetsPath}}/images/large.png"
+  },
+  "zigbee": {
+    "manufacturerName": "LiXee",
+    "productId": ["ZiPulses"],
+    "endpoints": {
+      "1": {
+        "clusters": [0, 1, 3, 1026, 1794],
+        "bindings": [1, 1026, 1794]
+      }
+    },
+    "learnmode": {
+      "instruction": {
+        "en": "Press the 'Link' button on the ZiPulses for 2-3 seconds until the LED blinks rapidly, then release.",
+        "fr": "Appuyez sur le bouton 'Link' du ZiPulses pendant 2-3 secondes jusqu'à ce que la LED clignote rapidement, puis relâchez."
+      }
+    }
+  },
+  "settings": [
+    {
+      "type": "group",
+      "label": {
+        "en": "Meter Type",
+        "fr": "Type de compteur"
+      },
+      "children": [
+        {
+          "id": "meter_type",
+          "type": "dropdown",
+          "label": {
+            "en": "Meter Type",
+            "fr": "Type de compteur"
+          },
+          "hint": {
+            "en": "Selects the native Homey capability for compatibility with the Energy tab and Power by the Hour.",
+            "fr": "Sélectionne la capability native Homey pour la compatibilité avec l'onglet Énergie et Power by the Hour."
+          },
+          "value": "electricity",
+          "values": [
+            { "id": "electricity", "label": { "en": "Electricity (kWh)", "fr": "Électricité (kWh)" } },
+            { "id": "water", "label": { "en": "Water (m³)", "fr": "Eau (m³)" } },
+            { "id": "gas", "label": { "en": "Gas (m³)", "fr": "Gaz (m³)" } },
+            { "id": "custom", "label": { "en": "Custom (index only)", "fr": "Personnalisé (index seul)" } }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Index Calculation",
+        "fr": "Calcul de l'index"
+      },
+      "children": [
+        {
+          "id": "unit",
+          "type": "dropdown",
+          "label": {
+            "en": "Display Unit",
+            "fr": "Unité d'affichage"
+          },
+          "hint": {
+            "en": "Unit shown on the Index tile.",
+            "fr": "Unité affichée sur la tuile Index."
+          },
+          "value": "kWh",
+          "values": [
+            { "id": "kWh", "label": { "en": "kWh", "fr": "kWh" } },
+            { "id": "Wh", "label": { "en": "Wh", "fr": "Wh" } },
+            { "id": "L", "label": { "en": "Liters", "fr": "Litres" } },
+            { "id": "m3", "label": { "en": "m³", "fr": "m³" } },
+            { "id": "ft3", "label": { "en": "ft³", "fr": "ft³" } },
+            { "id": "gal", "label": { "en": "Gallons", "fr": "Gallons" } },
+            { "id": "imp", "label": { "en": "Pulses", "fr": "Impulsions" } }
+          ]
+        },
+        {
+          "id": "multiplier",
+          "type": "number",
+          "label": {
+            "en": "Multiplier",
+            "fr": "Multiplicateur"
+          },
+          "hint": {
+            "en": "Weight per pulse in your meter's unit. Example: if 1 pulse = 10 Wh, set multiplier to 10.",
+            "fr": "Poids par impulsion dans l'unité de votre compteur. Exemple : si 1 impulsion = 10 Wh, mettre 10."
+          },
+          "value": 1,
+          "attr": {
+            "min": 1,
+            "max": 100000
+          }
+        },
+        {
+          "id": "divisor",
+          "type": "number",
+          "label": {
+            "en": "Divisor",
+            "fr": "Diviseur"
+          },
+          "hint": {
+            "en": "Index = pulses × multiplier ÷ divisor. Examples: Linky direct (1 Wh/imp) → mult=1 div=1000. Sub-meter S0 (10 Wh/imp) → mult=10 div=1000. Water (1 imp/L) → mult=1 div=1. Gazpar (1 imp = 0.01 m³) → mult=1 div=100.",
+            "fr": "Index = impulsions × multiplicateur ÷ diviseur. Exemples : Linky direct (1 Wh/imp) → mult=1 div=1000. Sous-compteur S0 (10 Wh/imp) → mult=10 div=1000. Eau (1 imp/L) → mult=1 div=1. Gazpar (1 imp = 0.01 m³) → mult=1 div=100."
+          },
+          "value": 1000,
+          "attr": {
+            "min": 1,
+            "max": 10000000
+          }
+        }
+      ]
+    }
+  ]
+}

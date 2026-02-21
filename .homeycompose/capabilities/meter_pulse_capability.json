@@ -1,0 +1,17 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Index",
+    "fr": "Index"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/meter_power.svg",
+  "insights": true,
+  "decimals": 3,
+  "units": {
+    "en": "kWh",
+    "fr": "kWh"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Raw Pulses",
+    "fr": "Impulsions brutes"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/flash.svg",
+  "insights": true,
+  "decimals": 0,
+  "units": {
+    "en": "imp",
+    "fr": "imp"
+  }
+}

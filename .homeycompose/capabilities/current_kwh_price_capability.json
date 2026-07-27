@@ -1,0 +1,11 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Current kWh price (deprecated)",
+    "fr": "Prix du kWh actuel (obsolète)"
+  },
+  "uiComponent": null,
+  "getable": true,
+  "setable": false,
+  "insights": false
+}

@@ -654,15 +654,19 @@ class Device extends ZigBeeDevice {
                 'phase3ApparentPower'
               ]);
 
-            if (phase2ApparentPower == undefined || phase2ApparentPower == 65535) {
+            // 0xFFFF = valeur "non disponible" Zigbee: on ne peut pas conclure à l'absence de mesure
+            const phase2Unavailable = (phase2ApparentPower == undefined || phase2ApparentPower == 65535);
+            const phase3Unavailable = (phase3ApparentPower == undefined || phase3ApparentPower == 65535);
+
+            if (phase2Unavailable) {
               phase2ApparentPower = 0;
             }
 
-            if (phase3ApparentPower == undefined || phase3ApparentPower == 65535) {
+            if (phase3Unavailable) {
               phase3ApparentPower = 0;
             }
 
-            if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase' && phase2ApparentPower == 0 && phase3ApparentPower == 0) {
+            if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase' && phase2ApparentPower == 0 && phase3ApparentPower == 0 && !phase2Unavailable && !phase3Unavailable) {
               if (self.hasCapability('phase_1_apparent_power_capability')) {
                 await self.removeCapability('phase_1_apparent_power_capability')
                   .catch(this.error);

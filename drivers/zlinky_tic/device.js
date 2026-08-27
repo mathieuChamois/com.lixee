@@ -7,6 +7,7 @@ const LixeePrivateCluster = require('../../lib/lixeePrivateCluster');
 const MeterIdentificationCluster = require('../../lib/meterIdentificationCluster');
 require('../../lib/lixeeElectricalMeasurementCluster');
 require('../../lib/lixeeMeteringCluster');
+const Tariff = require('../../lib/tariff');
 const { Log } = require('homey-log');
 // node-fetch v3 est ESM, on passe par un import dynamique compatible CommonJS
 const fetch = (...args) => import('node-fetch')
@@ -45,6 +46,105 @@ const tempoApiCache = {
   }
 };
 
+// Capability bouton exposée comme action de maintenance (réglages de l'appareil)
+const RESET_DAILY_COST_BUTTON = 'button.reset_daily_cost';
+
+// Homey affiche les capabilities dans l'ordre du tableau stocké sur l'appareil, et addCapability
+// ajoute toujours en fin de tableau: cette liste est la référence unique de l'ordre d'affichage.
+// Elle est appliquée par _applyCapabilityLayout(), qui ne recrée que ce qui est mal placé.
+// meter_power et measure_power restent en tête: sur les appareils déjà appairés elles y sont déjà,
+// elles ne sont donc jamais recréées et conservent leur historique Insights.
+const CAPABILITY_ORDER = [
+  'meter_power',
+  'measure_power',
+  'meter_power.imported',
+  'meter_power.exported',
+  'full_hour_capability',
+  'empty_hour_capability',
+  'full_hour_blue_capability',
+  'empty_hour_blue_capability',
+  'full_hour_white_capability',
+  'empty_hour_white_capability',
+  'full_hour_red_capability',
+  'empty_hour_red_capability',
+  'price_option_capability',
+  'serial_number_capability',
+  'price_period_capability',
+  'today_color_capability',
+  'tomorrow_color_capability',
+  // Les métriques de coût viennent toujours juste après la couleur de demain
+  'measure_daily_cost_capability',
+  'measure_yesterday_cost_capability',
+  'measure_current_kwh_price_capability',
+  'subscribe_intensity_capability',
+  'alarm_subscribe_power_capability',
+  'apparent_power_instant_inject_capability',
+  'mode_capability',
+  'phase_capability',
+  'produce_capability',
+  'active_power_capability',
+  'rms_current_capability',
+  'rms_voltage_capability',
+  'maximal_intensity_capability',
+  'phase_1_apparent_power_capability',
+  'phase_2_apparent_power_capability',
+  'phase_3_apparent_power_capability',
+  'clock_full_hour_empty_hour_capability',
+  'debug_capability',
+  RESET_DAILY_COST_BUTTON
+];
+
+// Repli triphasé -> monophasé décidé à partir des mesures, mémorisé pour que l'ordre des
+// capabilities reste stable d'un démarrage à l'autre
+const PHASE_OVERRIDE_STORE = 'phase_override';
+
+// Options héritées du manifeste du driver: addCapability ne les réinjecte pas, il faut donc les
+// reposer quand une capability est (re)créée sur un appareil déjà appairé.
+// Doit rester aligné sur "capabilitiesOptions" de driver.compose.json.
+const CAPABILITY_OPTIONS = {
+  'meter_power': {
+    title: {
+      en: 'Summation delivered',
+      fr: 'Index'
+    }
+  },
+  'meter_power.imported': {
+    title: {
+      en: 'Imported Energy',
+      fr: 'Energie importée'
+    }
+  },
+  'meter_power.exported': {
+    title: {
+      en: 'Exported Energy',
+      fr: 'Energie exportée'
+    }
+  },
+  'measure_power': {
+    title: {
+      en: 'Apparent power',
+      fr: 'Puissance apparente'
+    },
+    decimals: 2
+  },
+  [RESET_DAILY_COST_BUTTON]: {
+    maintenanceAction: true,
+    title: {
+      en: 'Reset the cost of the day',
+      fr: 'Remettre à zéro le coût du jour'
+    },
+    desc: {
+      en: 'Restart the consumption of the day from zero: the reference indexes are set to the current ones. The subscription share of the day remains counted.',
+      fr: 'Repart de zéro pour la consommation du jour: les index de référence sont recalés sur les index actuels. La part d\'abonnement du jour reste comptée.'
+    }
+  }
+};
+
+// Options tarifaires nécessitant les index heures pleines / heures creuses
+const HP_HC_PRICE_OPTIONS = ['HC..', 'HP..', 'HPHC', 'BBR', 'EJP.'];
+// Options tarifaires nécessitant les index par couleur (bleu / blanc / rouge)
+const COLORED_PRICE_OPTIONS = ['TEMPO', 'BBR', 'EJP.'];
+
 class Device extends ZigBeeDevice {
   async onNodeInit({ zclNode }) {
     this.enableDebug();
@@ -54,6 +154,11 @@ class Device extends ZigBeeDevice {
 
     this.log('demarrage de l\'initialisation du driver');
     await doInit();
+
+    // Bouton de maintenance "Remettre à zéro le coût du jour" (réglages de l'appareil).
+    // Enregistré hors de doInit(), qui peut sortir tôt si le compteur ne renvoie pas encore
+    // son option tarifaire: le bouton doit rester utilisable dans ce cas.
+    this.registerResetDailyCostListener();
 
     async function doInit() {
       try {
@@ -73,9 +178,7 @@ class Device extends ZigBeeDevice {
 
         self.log('[INFO] priceOption est ' + priceOption.toString());
 
-        await self.prepareMode(await self.getMode(zclNode), await priceOption);
-
-        await self.prepareCapabilities();
+        await self.prepareMode(await self.getMode(zclNode), priceOption);
 
         // Enregistre la condition Flow "period_option_is"
         try {
@@ -551,15 +654,19 @@ class Device extends ZigBeeDevice {
                 'phase3ApparentPower'
               ]);
 
-            if (phase2ApparentPower == undefined || phase2ApparentPower == 65535) {
+            // 0xFFFF = valeur "non disponible" Zigbee: on ne peut pas conclure à l'absence de mesure
+            const phase2Unavailable = (phase2ApparentPower == undefined || phase2ApparentPower == 65535);
+            const phase3Unavailable = (phase3ApparentPower == undefined || phase3ApparentPower == 65535);
+
+            if (phase2Unavailable) {
               phase2ApparentPower = 0;
             }
 
-            if (phase3ApparentPower == undefined || phase3ApparentPower == 65535) {
+            if (phase3Unavailable) {
               phase3ApparentPower = 0;
             }
 
-            if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase' && phase2ApparentPower == 0 && phase3ApparentPower == 0) {
+            if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase' && phase2ApparentPower == 0 && phase3ApparentPower == 0 && !phase2Unavailable && !phase3Unavailable) {
               if (self.hasCapability('phase_1_apparent_power_capability')) {
                 await self.removeCapability('phase_1_apparent_power_capability')
                   .catch(this.error);
@@ -576,6 +683,17 @@ class Device extends ZigBeeDevice {
               }
 
               await self.setCapabilityValue('phase_capability', 'monophase');
+              // Mémorisé pour que prepareMode ne rajoute pas les capabilities de phase au
+              // prochain démarrage: l'ordre des capabilities reste ainsi stable
+              await self.setStoreValue(PHASE_OVERRIDE_STORE, 'monophase')
+                .catch(self.error);
+            } else if (self.getStoreValue(PHASE_OVERRIDE_STORE) === 'monophase'
+              && (phase2ApparentPower > 0 || phase3ApparentPower > 0)) {
+              // Le compteur mesure à nouveau sur les phases 2 et 3: on annule le repli, les
+              // capabilities de phase reviendront au prochain démarrage
+              self.log('[INFO] Mesures présentes sur les phases 2 et 3, repli monophasé annulé');
+              await self.unsetStoreValue(PHASE_OVERRIDE_STORE)
+                .catch(self.error);
             }
 
             if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase') {
@@ -614,6 +732,10 @@ class Device extends ZigBeeDevice {
 
             await self.setCapabilityValue('serial_number_capability', serialNumber);
 
+            // Index bruts en Wh, collectés au fil des branches pour la valorisation
+            // monétaire (voir _updateDailyCost)
+            const indexes = { total: Number(currentSummationDelivered) };
+
             if (self.getCapabilityValue('price_option_capability') === 'BASE') {
               if (currentSummationDelivered != 0) {
                 if (currentSummationDelivered != self.getCapabilityValue('meter_power.imported')) {
@@ -634,6 +756,9 @@ class Device extends ZigBeeDevice {
                   'currentSummationDeliveredHC',
                   'currentSummationDeliveredHP',
                 ]);
+
+              indexes.hp = Number(currentSummationDeliveredHP);
+              indexes.hc = Number(currentSummationDeliveredHC);
 
               let cumulativeIndex = Math.floor((currentSummationDeliveredHP ?? 0) / 1000) + Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
               await self.setCapabilityValue('meter_power', cumulativeIndex);
@@ -667,7 +792,7 @@ class Device extends ZigBeeDevice {
               await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHC);
             }
 
-            if (self.getCapabilityValue('price_option_capability') === 'TEMPO' || self.getCapabilityValue('price_option_capability') === 'BBR' || self.getCapabilityValue('price_option_capability') === 'EJP') {
+            if (self.getCapabilityValue('price_option_capability') === 'TEMPO' || self.getCapabilityValue('price_option_capability') === 'BBR' || self.getCapabilityValue('price_option_capability') === 'EJP.') {
               let {
                 currentSummationDeliveredHC,
                 currentSummationDeliveredHP,
@@ -685,6 +810,13 @@ class Device extends ZigBeeDevice {
                   'currentSummationDeliveredHCR',
                   'currentSummationDeliveredHPR',
                 ]);
+
+              indexes.hp = Number(currentSummationDeliveredHP);
+              indexes.hc = Number(currentSummationDeliveredHC);
+              indexes.hpw = Number(currentSummationDeliveredHPW);
+              indexes.hcw = Number(currentSummationDeliveredHCW);
+              indexes.hpr = Number(currentSummationDeliveredHPR);
+              indexes.hcr = Number(currentSummationDeliveredHCR);
 
               await self.setCapabilityValue('meter_power', (currentSummationDelivered / 1000));
               await self.setCapabilityValue('meter_power.imported', (currentSummationDelivered / 1000));
@@ -773,6 +905,8 @@ class Device extends ZigBeeDevice {
 
             await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ? (activeEnergyTotalInjected / 1000) : 0);
 
+            await self._updateDailyCost(indexes);
+
             self.log(`Cluster metering return response correctly`);
           } catch (e) {
             self.log(`Something wrong with zigbee cluster and message : ${e.message}, app will retry later `);
@@ -786,57 +920,110 @@ class Device extends ZigBeeDevice {
     }
   }
 
-  async prepareCapabilities() {
-    await this.removeCapability('clock_full_hour_empty_hour_capability')
-      .catch(this.error);
-    await this.removeCapability('serial_number_capability')
-      .catch(this.error);
-    await this.removeCapability('today_color_capability')
-      .catch(this.error);
-    await this.removeCapability('tomorrow_color_capability')
-      .catch(this.error);
-    await this.removeCapability('subscribe_intensity_capability')
-      .catch(this.error);
-    await this.removeCapability('alarm_subscribe_power_capability')
-      .catch(this.error);
-    await this.removeCapability('rms_voltage_capability')
-      .catch(this.error);
-    await this.removeCapability('active_power_capability')
-      .catch(this.error);
-    await this.removeCapability('rms_current_capability')
-      .catch(this.error);
-    await this.removeCapability('power_factor_capability')
-      .catch(this.error);
-    await this.removeCapability('maximal_intensity_capability')
-      .catch(this.error);
+  // Liste les capabilities pertinentes pour ce compteur: mode (historique/standard),
+  // nombre de phases et option tarifaire. Les autres sont toujours présentes.
+  _computeApplicableCapabilities(mode, phase, priceOption) {
+    const CONDITIONAL_CAPABILITIES = [
+      'full_hour_capability',
+      'empty_hour_capability',
+      'full_hour_blue_capability',
+      'empty_hour_blue_capability',
+      'full_hour_white_capability',
+      'empty_hour_white_capability',
+      'full_hour_red_capability',
+      'empty_hour_red_capability',
+      'apparent_power_instant_inject_capability',
+      'phase_1_apparent_power_capability',
+      'phase_2_apparent_power_capability',
+      'phase_3_apparent_power_capability'
+    ];
 
-    await this.addCapability('debug_capability')
-      .catch(this.error);
-    await this.addCapability('serial_number_capability')
-      .catch(this.error);
-    await this.addCapability('clock_full_hour_empty_hour_capability')
-      .catch(this.error);
-    await this.addCapability('today_color_capability')
-      .catch(this.error);
-    await this.addCapability('tomorrow_color_capability')
-      .catch(this.error);
-    await this.addCapability('alarm_subscribe_power_capability')
-      .catch(this.error);
-    await this.addCapability('subscribe_intensity_capability')
-      .catch(this.error);
-    await this.addCapability('maximal_intensity_capability')
-      .catch(this.error);
-    await this.addCapability('rms_current_capability')
-      .catch(this.error);
-    await this.addCapability('rms_voltage_capability')
-      .catch(this.error);
-    await this.addCapability('active_power_capability')
-      .catch(this.error);
+    const applicable = new Set(
+      CAPABILITY_ORDER.filter(capability => !CONDITIONAL_CAPABILITIES.includes(capability))
+    );
 
-    if (this.hasCapability('meter_power') === false) {
-      await this.addCapability('meter_power')
-        .catch(this.error);
+    if (HP_HC_PRICE_OPTIONS.includes(priceOption)) {
+      applicable.add('full_hour_capability');
+      applicable.add('empty_hour_capability');
     }
+
+    if (COLORED_PRICE_OPTIONS.includes(priceOption)) {
+      applicable.add('full_hour_blue_capability');
+      applicable.add('empty_hour_blue_capability');
+      applicable.add('full_hour_white_capability');
+      applicable.add('empty_hour_white_capability');
+      applicable.add('full_hour_red_capability');
+      applicable.add('empty_hour_red_capability');
+    }
+
+    if (mode === 'standard') {
+      applicable.add('apparent_power_instant_inject_capability');
+    }
+
+    if (phase === 'triphase') {
+      applicable.add('phase_1_apparent_power_capability');
+      applicable.add('phase_2_apparent_power_capability');
+      applicable.add('phase_3_apparent_power_capability');
+    }
+
+    return applicable;
+  }
+
+  // Aligne les capabilities de l'appareil sur CAPABILITY_ORDER.
+  // Homey n'expose aucun réordonnancement: addCapability ajoute toujours en fin de tableau. On ne
+  // recrée donc que la queue à partir de la première divergence, ce qui laisse en place — et
+  // conserve l'historique Insights de — tout ce qui est déjà bien positionné. Au démarrage suivant
+  // l'ordre est déjà correct et cette méthode ne touche plus à rien.
+  async _applyCapabilityLayout(applicable) {
+    const desired = CAPABILITY_ORDER.filter(capability => applicable.has(capability));
+
+    // Retire ce qui ne s'applique pas à ce compteur, ainsi que les capabilities obsolètes des
+    // appareils déjà appairés: power_factor_capability, summation_delivered_capability et les
+    // anciens identifiants des coûts sans préfixe 'measure_' (daily_cost_capability,
+    // yesterday_cost_capability, current_kwh_price_capability). Ces derniers restent déclarés
+    // (masqués) dans .homeycompose/capabilities car removeCapability refuse un identifiant absent
+    // du manifeste ("Invalid Capability"); ils pourront être supprimés une fois les appareils
+    // migrés.
+    for (const capability of [...this.getCapabilities()]) {
+      if (!desired.includes(capability)) {
+        await this.removeCapability(capability)
+          .then(() => this.log(`[LAYOUT] Capability retirée: ${capability}`))
+          .catch(e => this.error(`[LAYOUT] removeCapability(${capability}) a échoué: ${e && e.message ? e.message : e}`));
+      }
+    }
+
+    const current = this.getCapabilities();
+    let firstMismatch = 0;
+    while (firstMismatch < desired.length && current[firstMismatch] === desired[firstMismatch]) {
+      firstMismatch++;
+    }
+
+    if (firstMismatch >= desired.length) {
+      this.log('[LAYOUT] Ordre des capabilities déjà correct');
+      return false;
+    }
+
+    this.log(`[LAYOUT] Réordonnancement à partir de ${desired[firstMismatch]} (${desired.length - firstMismatch} capabilities)`);
+
+    for (let i = firstMismatch; i < desired.length; i++) {
+      const capability = desired[i];
+
+      if (this.hasCapability(capability)) {
+        await this.removeCapability(capability)
+          .catch(e => this.error(`[LAYOUT] removeCapability(${capability}) a échoué: ${e && e.message ? e.message : e}`));
+      }
+
+      await this.addCapability(capability)
+        .catch(e => this.error(`[LAYOUT] addCapability(${capability}) a échoué: ${e && e.message ? e.message : e}`));
+
+      // addCapability ne réinjecte pas les capabilitiesOptions du manifeste
+      if (CAPABILITY_OPTIONS[capability] && this.hasCapability(capability)) {
+        await this.setCapabilityOptions(capability, CAPABILITY_OPTIONS[capability])
+          .catch(e => this.error(`[LAYOUT] setCapabilityOptions(${capability}) a échoué: ${e && e.message ? e.message : e}`));
+      }
+    }
+
+    return true;
   }
 
   async getMode(zclNode) {
@@ -874,129 +1061,59 @@ class Device extends ZigBeeDevice {
     }
   }
 
-  async prepareMode(currentMode, priceOption) {
-    this.log(`[INFO] Current mode: ${currentMode.mode}`);
+  // Point d'entrée de la mise en place des capabilities: décode le mode du compteur, applique
+  // l'ordre canonique puis pose les valeurs décrivant le compteur.
+  async prepareMode(currentMode, rawPriceOption) {
     const explodedMode = this.decodeMode(currentMode.mode);
+    const priceOption = this._normalizePriceOption(rawPriceOption);
+    const [mode, decodedPhase, producteur] = explodedMode;
+
+    this.log(`[INFO] Current mode: ${currentMode.mode}`);
     this.log(`[INFO] Decoded mode: ${explodedMode.join('_')}`);
     this.log(`[INFO] Price option: ${priceOption}`);
 
-    await this.removeCapability('meter_power.imported')
-      .catch(this.error);
+    // Un compteur annoncé triphasé mais qui ne mesure rien sur les phases 2 et 3 est traité comme
+    // monophasé (voir le cluster electrical measurement). Ce repli est mémorisé: sans lui, les
+    // capabilities de phase seraient rajoutées à chaque démarrage.
+    const phase = this.getStoreValue(PHASE_OVERRIDE_STORE) === 'monophase' ? 'monophase' : decodedPhase;
+    if (phase !== decodedPhase) {
+      this.log(`[INFO] Phase forcée à ${phase}: aucune mesure sur les phases 2 et 3`);
+    }
 
-    await this.addCapability('meter_power.imported')
-      .catch(this.error)
-      .then(async () => {
-        await this.removeCapability('meter_power.exported')
-          .catch(this.error);
-        await this.addCapability('meter_power.exported')
-          .catch(this.error)
-          .then(async () => {
-            if (!this.hasCapability('meter_power.exported')) {
-              this.log('meter_power.exported capability not created; skipping subsequent capabilities');
-              return;
-            }
+    const layoutChanged = await this._applyCapabilityLayout(
+      this._computeApplicableCapabilities(mode, phase, priceOption)
+    );
 
-            await this.removeCapability('full_hour_capability')
-              .catch(this.error);
-            await this.removeCapability('empty_hour_capability')
-              .catch(this.error);
+    // Le réordonnancement a pu recréer le bouton de maintenance: on réenregistre son listener
+    if (layoutChanged) {
+      this._resetDailyCostListenerRegistered = false;
+      this.registerResetDailyCostListener();
+    }
 
-            if (priceOption === 'BBRx') priceOption = 'BBR';
-            if (priceOption === 'HC..') priceOption = 'HPHC';
-            if (priceOption === 'H PLEINE/CREUSE') priceOption = 'HPHC';
+    if (this.hasCapability('mode_capability')) {
+      await this.setCapabilityValue('mode_capability', mode)
+        .catch(this.error);
+    }
 
-            if (priceOption == 'HC..' || priceOption == 'HP..' || priceOption == 'HPHC' || priceOption == 'BBR' || priceOption == 'EJP') {
-              await this.addCapability('full_hour_capability')
-                .catch(this.error);
-              await this.addCapability('empty_hour_capability')
-                .catch(this.error);
-            }
+    if (this.hasCapability('phase_capability')) {
+      await this.setCapabilityValue('phase_capability', phase)
+        .catch(this.error);
+    }
 
-            await this.removeCapability('full_hour_blue_capability')
-              .catch(this.error);
-            await this.removeCapability('empty_hour_blue_capability')
-              .catch(this.error);
-            await this.removeCapability('full_hour_white_capability')
-              .catch(this.error);
-            await this.removeCapability('empty_hour_white_capability')
-              .catch(this.error);
-            await this.removeCapability('full_hour_red_capability')
-              .catch(this.error);
-            await this.removeCapability('empty_hour_red_capability')
-              .catch(this.error);
+    if (this.hasCapability('produce_capability')) {
+      await this.setCapabilityValue('produce_capability', producteur !== undefined)
+        .catch(this.error);
+    }
 
-            if (priceOption == 'TEMPO' || priceOption == 'BBR' || priceOption === 'EJP') {
-              await this.addCapability('full_hour_blue_capability')
-                .catch(this.error);
-              await this.addCapability('empty_hour_blue_capability')
-                .catch(this.error);
-              await this.addCapability('full_hour_white_capability')
-                .catch(this.error);
-              await this.addCapability('empty_hour_white_capability')
-                .catch(this.error);
-              await this.addCapability('full_hour_red_capability')
-                .catch(this.error);
-              await this.addCapability('empty_hour_red_capability')
-                .catch(this.error);
-            }
+    if (this.hasCapability('debug_capability')) {
+      await this.setCapabilityValue(
+        'debug_capability',
+        `${String(currentMode.mode)}-${explodedMode.join('_')}-${priceOption}`
+      )
+        .catch(this.error);
+    }
 
-            await this.removeCapability('price_period_capability')
-              .catch(this.error);
-            await this.addCapability('price_period_capability')
-              .catch(this.error);
-
-            await this.removeCapability('phase_1_apparent_power_capability')
-              .catch(this.error);
-            if (explodedMode[1] === 'triphase') await this.addCapability('phase_1_apparent_power_capability');
-
-            await this.removeCapability('phase_2_apparent_power_capability')
-              .catch(this.error);
-            if (explodedMode[1] === 'triphase') await this.addCapability('phase_2_apparent_power_capability');
-
-            await this.removeCapability('phase_3_apparent_power_capability')
-              .catch(this.error);
-            if (explodedMode[1] === 'triphase') await this.addCapability('phase_3_apparent_power_capability');
-
-            await this.removeCapability('price_option_capability')
-              .catch(this.error);
-            await this.addCapability('price_option_capability')
-              .catch(this.error);
-
-            await this.removeCapability('mode_capability');
-            await this.addCapability('mode_capability');
-            if (explodedMode[0] !== undefined && this.hasCapability('mode_capability')) {
-              await this.setCapabilityValue('mode_capability', explodedMode[0]);
-            }
-
-            await this.removeCapability('phase_capability');
-            await this.addCapability('phase_capability');
-            if (explodedMode[1] !== undefined && this.hasCapability('phase_capability')) {
-              await this.setCapabilityValue('phase_capability', explodedMode[1]);
-            }
-
-            await this.removeCapability('apparent_power_instant_inject_capability')
-              .catch(this.error);
-
-            if (explodedMode[0] === 'standard') {
-              await this.addCapability('apparent_power_instant_inject_capability')
-                .catch(this.error);
-            }
-
-            await this.removeCapability('produce_capability')
-              .catch(this.error);
-            await this.addCapability('produce_capability');
-            await this.setCapabilityValue('produce_capability', explodedMode[2] !== undefined);
-
-            await this.removeCapability('debug_capability')
-              .catch(this.error);
-            await this.addCapability('debug_capability')
-              .catch(this.error);
-            await this.setCapabilityValue(
-              'debug_capability',
-              `${String(currentMode.mode)}-${explodedMode.join('_')}-${priceOption}`
-            );
-          });
-      });
+    return priceOption;
   }
 }
 
@@ -1287,8 +1404,23 @@ Device.prototype._extractTodayFromRegister = function(reg) {
   }
 };
 
+// Normalise l'option tarifaire lue sur le compteur: nettoyage de la chaîne puis alias
+// ('BBRx' -> 'BBR', 'HC..'/'H PLEINE/CREUSE' -> 'HPHC', 'EJP' -> 'EJP.').
+// Retourne une chaîne vide si la lecture est vide.
+Device.prototype._normalizePriceOption = function(raw) {
+  let val = String(raw ?? '').replace(/\0/g, '').trim();
+
+  if (!val) return '';
+  if (val === 'BBRx') val = 'BBR';
+  if (val === 'HC..') val = 'HPHC';
+  if (val === 'H PLEINE/CREUSE') val = 'HPHC';
+  if (val === 'EJP') val = 'EJP.';
+
+  return val;
+};
+
 // Met à jour l'option tarifaire si elle change, avec normalisation et déclenchement du Flow
-// - Normalise: 'BBRx' -> 'BBR'
+// - Normalise via _normalizePriceOption
 // - Valide contre la liste autorisée
 // - Déclenche le trigger Flow 'price_option_became' si changement
 Device.prototype._updatePriceOptionIfChanged = async function(newValue) {
@@ -1298,15 +1430,11 @@ Device.prototype._updatePriceOptionIfChanged = async function(newValue) {
 
     this.log('[INFO] priceOption avant' + newValue);
 
-    // normalisation minimale
-    let val = String(newValue).replace(/\0/g, '').trim();
+    let val = this._normalizePriceOption(newValue);
 
-    this.log('[INFO] priceOption apres' + newValue);
+    this.log('[INFO] priceOption apres' + val);
 
     if (!val) return;
-    if (val === 'BBRx') val = 'BBR';
-    if (val === 'HC..') val = 'HPHC';
-    if (val === 'H PLEINE/CREUSE') val = 'HPHC';
 
     const VALID = ['BASE', 'TEMPO', 'HC..', 'HPHC', 'EJP.', 'BBR'];
     if (!VALID.includes(val)) val = 'UNKN';
@@ -1331,6 +1459,155 @@ Device.prototype._updatePriceOptionIfChanged = async function(newValue) {
   } catch (e) {
     this.error(`update price_option_capability failed: ${e && e.message ? e.message : e}`);
   }
+};
+
+// Mémorise l'état du calcul de coût (jour courant + index de référence) en mémoire et dans le
+// store de l'appareil, afin de survivre à un redémarrage de l'app.
+// Appelé uniquement quand la baseline change (jour suivant, nouveau registre, compteur remis à zéro).
+Device.prototype._persistCostState = async function(state) {
+  this._costState = state;
+  await this.setStoreValue('cost_state', state)
+    .catch(e => this.error(`persist cost_state failed: ${e && e.message ? e.message : e}`));
+};
+
+// Coût de la journée: consommation valorisée depuis minuit + part journalière de l'abonnement.
+// Renvoie null si aucun tarif n'est renseigné pour l'option tarifaire courante et que
+// l'abonnement est à 0 (la capability affiche alors '-' plutôt qu'un 0 trompeur).
+Device.prototype._computeDailyCost = function(priceOption, state, indexes, settings) {
+  const {
+    cost,
+    kwh,
+    hasPrice
+  } = Tariff.computeEnergyCost(priceOption, state.baseline, indexes, settings);
+  const subscription = Tariff.dailySubscriptionCost(settings.price_subscription_monthly, state.day);
+
+  if (!hasPrice && subscription === 0) {
+    if (!this._costNotConfiguredLogged) {
+      this._costNotConfiguredLogged = true;
+      this.log(`[COST] Aucun tarif renseigné pour l'option ${priceOption}, coût non calculé`);
+    }
+    return null;
+  }
+  this._costNotConfiguredLogged = false;
+
+  const total = Math.round((cost + subscription) * 100) / 100;
+  this.log(`[COST] option=${priceOption} conso=${kwh.toFixed(3)}kWh coutConso=${cost.toFixed(4)}€ abonnement=${subscription.toFixed(4)}€ total=${total}€`);
+  return total;
+};
+
+// Valorise la consommation de la journée en cours et met à jour les capabilities de coût.
+// Le calcul se fait par différence d'index depuis le dernier passage de minuit (heure locale
+// du Homey), registre par registre: c'est exact et insensible aux redémarrages de l'app.
+// `indexes` contient les index bruts en Wh collectés dans l'intervalle metering.
+Device.prototype._updateDailyCost = async function(indexes) {
+  try {
+    // Derniers index connus, utilisés par resetDailyCost() qui est appelé hors de cet intervalle
+    this._lastIndexes = indexes;
+
+    if (!this.hasCapability('measure_daily_cost_capability')) return;
+
+    const settings = this.getSettings();
+    const priceOption = this.getCapabilityValue('price_option_capability');
+    const dayKey = Tariff.localDayKey(new Date(), this.homey.clock.getTimezone());
+
+    let state = this._costState || await this.getStoreValue('cost_state');
+
+    if (!state || !state.day || !state.baseline) {
+      // Premier relevé (ou store vide): on pose la référence sur les index courants
+      state = {
+        day: dayKey,
+        baseline: Tariff.reconcileBaseline({}, indexes)
+      };
+      await this._persistCostState(state);
+      this.log(`[COST] Baseline initialisée pour le ${dayKey}`);
+    } else if (state.day !== dayKey) {
+      // Passage de minuit: on fige le coût de la veille puis on repart de zéro
+      const closingCost = this._computeDailyCost(priceOption, state, indexes, settings);
+      state = {
+        day: dayKey,
+        baseline: Tariff.reconcileBaseline({}, indexes)
+      };
+      await this._persistCostState(state);
+      if (this.hasCapability('measure_yesterday_cost_capability')) {
+        await this.setCapabilityValue('measure_yesterday_cost_capability', closingCost);
+      }
+      this.log(`[COST] Changement de jour -> ${dayKey}, coût de la veille figé à ${closingCost}€`);
+    } else {
+      // En cours de journée: recalage si un registre apparaît ou si un index recule
+      // (remise à zéro du compteur, changement d'option tarifaire)
+      const reconciled = Tariff.reconcileBaseline(state.baseline, indexes);
+      if (JSON.stringify(reconciled) !== JSON.stringify(state.baseline)) {
+        state = {
+          day: state.day,
+          baseline: reconciled
+        };
+        await this._persistCostState(state);
+        this.log('[COST] Baseline recalée (nouveau registre ou index en recul)');
+      }
+    }
+
+    await this.setCapabilityValue(
+      'measure_daily_cost_capability',
+      this._computeDailyCost(priceOption, state, indexes, settings)
+    );
+
+    if (this.hasCapability('measure_current_kwh_price_capability')) {
+      await this.setCapabilityValue('measure_current_kwh_price_capability', Tariff.currentKwhPrice(
+        priceOption,
+        this.getCapabilityValue('price_period_capability'),
+        this.getCapabilityValue('today_color_capability'),
+        settings
+      ));
+    }
+  } catch (e) {
+    this.error(`_updateDailyCost failed: ${e && e.message ? e.message : e}`);
+  }
+};
+
+// (Ré)enregistre le listener du bouton de maintenance "Remettre à zéro le coût du jour".
+// Appelé au démarrage et après un réordonnancement des capabilities, qui recrée le bouton.
+Device.prototype.registerResetDailyCostListener = function() {
+  try {
+    if (!this.hasCapability(RESET_DAILY_COST_BUTTON)) return;
+    if (this._resetDailyCostListenerRegistered) return;
+    this.registerCapabilityListener(RESET_DAILY_COST_BUTTON, async () => {
+      await this.resetDailyCost();
+    });
+    this._resetDailyCostListenerRegistered = true;
+  } catch (e) {
+    this.error(`Failed to register maintenance action ${RESET_DAILY_COST_BUTTON}: ${e && e.message ? e.message : e}`);
+  }
+};
+
+// Remet à zéro le coût du jour, à la demande (bouton de maintenance ou action Flow).
+// On recale la baseline sur les derniers index connus: seule la consommation valorisée
+// repart de zéro. La part journalière de l'abonnement reste due pour la journée, donc le
+// coût du jour redescend à ce seul montant (0 € si aucun abonnement n'est renseigné) puis
+// remonte avec la consommation à venir. Le coût de la veille n'est pas touché.
+// Si aucun relevé n'a encore eu lieu, la baseline reste vide: le prochain passage de
+// l'intervalle metering l'initialisera sur les index courants (reconcileBaseline).
+Device.prototype.resetDailyCost = async function() {
+  const dayKey = Tariff.localDayKey(new Date(), this.homey.clock.getTimezone());
+
+  const state = {
+    day: dayKey,
+    baseline: Tariff.reconcileBaseline({}, this._lastIndexes || {})
+  };
+  await this._persistCostState(state);
+
+  if (this.hasCapability('measure_daily_cost_capability')) {
+    // Recalculé plutôt que forcé à 0, pour réafficher immédiatement la part d'abonnement
+    const total = this._computeDailyCost(
+      this.getCapabilityValue('price_option_capability'),
+      state,
+      this._lastIndexes || {},
+      this.getSettings()
+    );
+    await this.setCapabilityValue('measure_daily_cost_capability', total)
+      .catch(e => this.error(`reset measure_daily_cost_capability failed: ${e && e.message ? e.message : e}`));
+  }
+
+  this.log(`[COST] Coût du jour remis à zéro pour le ${dayKey} (la part d'abonnement du jour reste comptée)`);
 };
 
 module.exports = Device;

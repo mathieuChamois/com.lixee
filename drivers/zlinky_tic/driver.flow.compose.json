@@ -117,5 +117,18 @@
         ]}
       ]
     }
+  ],
+  "actions": [
+    {
+      "id": "reset_daily_cost",
+      "title": {
+        "en": "Reset the cost of the day",
+        "fr": "Remettre à zéro le coût du jour"
+      },
+      "titleFormatted": {
+        "en": "Reset the cost of the day on [[device]]",
+        "fr": "Remettre à zéro le coût du jour sur [[device]]"
+      }
+    }
   ]
 }

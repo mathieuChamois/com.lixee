@@ -10,9 +10,9 @@
   ],
   "capabilities": [
     "meter_power",
+    "measure_power",
     "meter_power.imported",
     "meter_power.exported",
-    "measure_power",
     "full_hour_capability",
     "empty_hour_capability",
     "full_hour_blue_capability",
@@ -26,6 +26,9 @@
     "price_period_capability",
     "today_color_capability",
     "tomorrow_color_capability",
+    "measure_daily_cost_capability",
+    "measure_yesterday_cost_capability",
+    "measure_current_kwh_price_capability",
     "subscribe_intensity_capability",
     "alarm_subscribe_power_capability",
     "apparent_power_instant_inject_capability",
@@ -36,7 +39,8 @@
     "maximal_intensity_capability",
     "phase_2_apparent_power_capability",
     "phase_3_apparent_power_capability",
-    "clock_full_hour_empty_hour_capability"
+    "clock_full_hour_empty_hour_capability",
+    "button.reset_daily_cost"
   ],
   "images": {
     "small": "{{driverAssetsPath}}/images/small.png",
@@ -67,8 +71,239 @@
         "fr": "Puissance apparente"
       },
       "decimals": 2
+    },
+    "button.reset_daily_cost": {
+      "maintenanceAction": true,
+      "title": {
+        "en": "Reset the cost of the day",
+        "fr": "Remettre à zéro le coût du jour"
+      },
+      "desc": {
+        "en": "Restart the consumption of the day from zero: the reference indexes are set to the current ones. The subscription share of the day remains counted.",
+        "fr": "Repart de zéro pour la consommation du jour: les index de référence sont recalés sur les index actuels. La part d'abonnement du jour reste comptée."
+      }
     }
   },
+  "settings": [
+    {
+      "type": "group",
+      "label": {
+        "en": "Subscription",
+        "fr": "Abonnement"
+      },
+      "children": [
+        {
+          "id": "price_subscription_monthly",
+          "type": "number",
+          "label": {
+            "en": "Monthly subscription price",
+            "fr": "Prix de l'abonnement"
+          },
+          "hint": {
+            "en": "Monthly amount of your subscription, VAT included. It is spread over the days of the current month and added to the cost of the day.",
+            "fr": "Montant mensuel TTC de votre abonnement. Il est réparti sur les jours du mois en cours et ajouté au coût du jour."
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.01,
+          "units": {
+            "en": "€/month",
+            "fr": "€/mois"
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Base option",
+        "fr": "Option Base"
+      },
+      "children": [
+        {
+          "id": "price_base",
+          "type": "number",
+          "label": {
+            "en": "All hours price",
+            "fr": "Prix Toutes Heures"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Peak / Off-peak option",
+        "fr": "Option Heures Pleines / Heures Creuses"
+      },
+      "children": [
+        {
+          "id": "price_hp",
+          "type": "number",
+          "label": {
+            "en": "Peak hours price",
+            "fr": "Prix Heures Pleines"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_hc",
+          "type": "number",
+          "label": {
+            "en": "Off-peak hours price",
+            "fr": "Prix Heures Creuses"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Tempo option",
+        "fr": "Option Tempo"
+      },
+      "children": [
+        {
+          "id": "price_tempo_blue_hp",
+          "type": "number",
+          "label": {
+            "en": "Blue day, peak hours",
+            "fr": "Jour bleu, Heures Pleines"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_tempo_blue_hc",
+          "type": "number",
+          "label": {
+            "en": "Blue day, off-peak hours",
+            "fr": "Jour bleu, Heures Creuses"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_tempo_white_hp",
+          "type": "number",
+          "label": {
+            "en": "White day, peak hours",
+            "fr": "Jour blanc, Heures Pleines"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_tempo_white_hc",
+          "type": "number",
+          "label": {
+            "en": "White day, off-peak hours",
+            "fr": "Jour blanc, Heures Creuses"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_tempo_red_hp",
+          "type": "number",
+          "label": {
+            "en": "Red day, peak hours",
+            "fr": "Jour rouge, Heures Pleines"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_tempo_red_hc",
+          "type": "number",
+          "label": {
+            "en": "Red day, off-peak hours",
+            "fr": "Jour rouge, Heures Creuses"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "EJP option",
+        "fr": "Option EJP"
+      },
+      "children": [
+        {
+          "id": "price_ejp_normal",
+          "type": "number",
+          "label": {
+            "en": "Normal hours price",
+            "fr": "Prix Heures Normales"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_ejp_peak",
+          "type": "number",
+          "label": {
+            "en": "Mobile peak price",
+            "fr": "Prix Pointe Mobile"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        }
+      ]
+    }
+  ],
   "energy": {
     "cumulative": true,
     "cumulativeImportedCapability": "meter_power.imported",

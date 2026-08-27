@@ -229,5 +229,11 @@
   },
   "1.4.10": {
     "en": "add more debug again"
+  },
+  "1.4.11": {
+    "en": "debug BBR"
+  },
+  "1.5.0": {
+    "en": "add price"
   }
 }

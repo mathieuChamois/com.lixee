@@ -1,0 +1,17 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Pulse count",
+    "da": "Pulstæller"
+  },
+  "getable": true,
+  "setable": false,
+  "units": {
+    "en": "pulses",
+    "da": "pulser"
+  },
+  "decimals": 0,
+  "min": 0,
+  "step": 1,
+  "insights": true
+}

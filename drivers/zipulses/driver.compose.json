@@ -1,0 +1,61 @@
+{
+  "name": {
+    "en": "LiXee ZiPulses Water Meter",
+    "da": "LiXee ZiPulses vandmåler"
+  },
+  "class": "sensor",
+  "platforms": ["local", "cloud"],
+  "connectivity": ["zigbee"],
+  "capabilities": [
+    "meter_water",
+    "measure_pulses",
+    "measure_temperature",
+    "measure_battery"
+  ],
+  "capabilitiesOptions": {
+    "meter_water": {
+      "title": {
+        "en": "Water meter",
+        "da": "Vandmåler"
+      }
+    },
+    "measure_temperature": {
+      "title": {
+        "en": "Sensor temperature",
+        "da": "Sensortemperatur"
+      }
+    },
+    "measure_battery": {
+      "title": {
+        "en": "Battery",
+        "da": "Batteri"
+      }
+    }
+  },
+  "energy": {
+    "cumulative": true,
+    "batteries": ["CR2450"]
+  },
+  "zigbee": {
+    "manufacturerName": "LiXee",
+    "productId": ["ZiPulses"],
+    "endpoints": {
+      "1": {
+        "clusters": [0, 1, 3, 1026, 1794],
+        "bindings": [1, 1026, 1794]
+      }
+    },
+    "learnmode": {
+      "image": "/drivers/zipulses/assets/learnmode.svg",
+      "instruction": {
+        "en": "If ZiPulses is not on a Zigbee network, briefly press Link to start pairing. If it is still associated with another network, hold Link for about 10 seconds to leave that network. During pairing, wake the device repeatedly with short Link presses so Homey can bind the Battery, Temperature and Metering clusters.",
+        "da": "Hvis ZiPulses ikke er på et Zigbee-netværk, tryk kort på Link for at starte parring. Hvis den stadig er tilknyttet et andet netværk, hold Link inde i ca. 10 sekunder for at forlade netværket. Under parringen skal enheden vækkes gentagne gange med korte tryk på Link, så Homey kan binde Batteri-, Temperatur- og Metering-clusterne."
+      }
+    }
+  },
+  "images": {
+    "small": "/drivers/zipulses/assets/images/small.png",
+    "large": "/drivers/zipulses/assets/images/large.png",
+    "xlarge": "/drivers/zipulses/assets/images/xlarge.png"
+  }
+}

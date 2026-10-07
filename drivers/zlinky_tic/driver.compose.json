@@ -24,16 +24,25 @@
     "price_option_capability",
     "serial_number_capability",
     "price_period_capability",
+    "supplier_tariff_capability",
+    "next_tariff_change_capability",
+    "tomorrow_schedule_capability",
     "today_color_capability",
     "tomorrow_color_capability",
     "measure_daily_cost_capability",
     "measure_yesterday_cost_capability",
+    "measure_month_cost_capability",
+    "measure_last_month_cost_capability",
     "measure_current_kwh_price_capability",
     "subscribe_intensity_capability",
+    "subscribed_power_capability",
     "alarm_subscribe_power_capability",
+    "max_apparent_power_today_capability",
+    "max_apparent_power_yesterday_capability",
     "apparent_power_instant_inject_capability",
     "phase_capability",
     "active_power_capability",
+    "estimated_active_power_capability",
     "rms_current_capability",
     "rms_voltage_capability",
     "maximal_intensity_capability",
@@ -67,8 +76,8 @@
     },
     "measure_power": {
       "title": {
-        "en": "Apparent power",
-        "fr": "Puissance apparente"
+        "en": "Apparent power (VA)",
+        "fr": "Puissance apparente (VA)"
       },
       "decimals": 2,
       "insights": true
@@ -86,6 +95,44 @@
     }
   },
   "settings": [
+    {
+      "type": "group",
+      "label": {
+        "en": "Power",
+        "fr": "Puissance"
+      },
+      "children": [
+        {
+          "id": "power_source",
+          "type": "dropdown",
+          "label": {
+            "en": "Power sent to Homey Energy",
+            "fr": "Puissance transmise à Homey Energy"
+          },
+          "hint": {
+            "en": "Apparent: instantaneous, but includes reactive power, so higher than what you pay for. Estimated active: computed from the energy index (standard mode only), matches what you pay for, smoothed over 30 s to 5 min depending on the load.",
+            "fr": "Apparente : instantanée, mais inclut la puissance réactive, donc plus élevée que ce qui est facturé. Active estimée : calculée à partir de l'index d'énergie (mode standard uniquement), correspond à ce qui est facturé, lissée sur 30 s à 5 min selon la charge."
+          },
+          "value": "apparent",
+          "values": [
+            {
+              "id": "apparent",
+              "label": {
+                "en": "Apparent power (instantaneous)",
+                "fr": "Puissance apparente (instantanée)"
+              }
+            },
+            {
+              "id": "active_estimated",
+              "label": {
+                "en": "Estimated active power",
+                "fr": "Puissance active estimée"
+              }
+            }
+          ]
+        }
+      ]
+    },
     {
       "type": "group",
       "label": {
@@ -110,6 +157,168 @@
           "units": {
             "en": "€/month",
             "fr": "€/mois"
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": {
+        "en": "Standard mode: price per supplier index",
+        "fr": "Mode standard : prix par index fournisseur"
+      },
+      "children": [
+        {
+          "id": "supplier_index_labels",
+          "type": "label",
+          "label": {
+            "en": "Indexes seen on your meter",
+            "fr": "Index vus sur votre compteur"
+          },
+          "hint": {
+            "en": "Filled in automatically from the meter (LTARF) as each index becomes active. Enter below the price of each index listed here.",
+            "fr": "Rempli automatiquement à partir du compteur (LTARF), au fur et à mesure que chaque index devient actif. Saisissez ci-dessous le prix de chaque index listé ici."
+          },
+          "value": ""
+        },
+        {
+          "id": "price_index_01",
+          "type": "number",
+          "label": {
+            "en": "Index 01 price",
+            "fr": "Prix index 01"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_index_02",
+          "type": "number",
+          "label": {
+            "en": "Index 02 price",
+            "fr": "Prix index 02"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_index_03",
+          "type": "number",
+          "label": {
+            "en": "Index 03 price",
+            "fr": "Prix index 03"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_index_04",
+          "type": "number",
+          "label": {
+            "en": "Index 04 price",
+            "fr": "Prix index 04"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_index_05",
+          "type": "number",
+          "label": {
+            "en": "Index 05 price",
+            "fr": "Prix index 05"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_index_06",
+          "type": "number",
+          "label": {
+            "en": "Index 06 price",
+            "fr": "Prix index 06"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_index_07",
+          "type": "number",
+          "label": {
+            "en": "Index 07 price",
+            "fr": "Prix index 07"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_index_08",
+          "type": "number",
+          "label": {
+            "en": "Index 08 price",
+            "fr": "Prix index 08"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_index_09",
+          "type": "number",
+          "label": {
+            "en": "Index 09 price",
+            "fr": "Prix index 09"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
+          }
+        },
+        {
+          "id": "price_index_10",
+          "type": "number",
+          "label": {
+            "en": "Index 10 price",
+            "fr": "Prix index 10"
+          },
+          "value": 0,
+          "min": 0,
+          "step": 0.0001,
+          "units": {
+            "en": "€/kWh"
           }
         }
       ]

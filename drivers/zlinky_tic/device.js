@@ -8,6 +8,9 @@ const MeterIdentificationCluster = require('../../lib/meterIdentificationCluster
 require('../../lib/lixeeElectricalMeasurementCluster');
 require('../../lib/lixeeMeteringCluster');
 const Tariff = require('../../lib/tariff');
+const ActivePowerEstimator = require('../../lib/activePowerEstimator');
+const Schedule = require('../../lib/tariffSchedule');
+const RawAttributes = require('../../lib/rawAttributes');
 const { Log } = require('homey-log');
 // node-fetch v3 est ESM, on passe par un import dynamique compatible CommonJS
 const fetch = (...args) => import('node-fetch')
@@ -90,6 +93,17 @@ const CAPABILITY_ORDER = [
   'phase_2_apparent_power_capability',
   'phase_3_apparent_power_capability',
   'clock_full_hour_empty_hour_capability',
+  // Tuiles ajoutées après la 1.5.0: placées à la fin pour qu'une mise à jour ne recrée pas
+  // (et ne vide pas l'historique Insights) des tuiles existantes
+  'supplier_tariff_capability',
+  'next_tariff_change_capability',
+  'tomorrow_schedule_capability',
+  'measure_month_cost_capability',
+  'measure_last_month_cost_capability',
+  'subscribed_power_capability',
+  'max_apparent_power_today_capability',
+  'max_apparent_power_yesterday_capability',
+  'estimated_active_power_capability',
   'debug_capability',
   RESET_DAILY_COST_BUTTON
 ];
@@ -122,8 +136,8 @@ const CAPABILITY_OPTIONS = {
   },
   'measure_power': {
     title: {
-      en: 'Apparent power',
-      fr: 'Puissance apparente'
+      en: 'Apparent power (VA)',
+      fr: 'Puissance apparente (VA)'
     },
     decimals: 2
   },
@@ -180,6 +194,38 @@ class Device extends ZigBeeDevice {
 
         await self.prepareMode(await self.getMode(zclNode), priceOption);
         await self._logNextDayProfile(zclNode);
+
+        // Passage historique <-> standard (demande au fournisseur) ou changement d'offre en cours
+        // de fonctionnement: on relit mode et option toutes les 5 minutes et on refait la mise en
+        // page des tuiles si besoin, sans attendre un redémarrage de l'app.
+        setInterval(async () => {
+          try {
+            const { priceOption: rawOption } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
+              .clusters[LixeePrivateCluster.NAME]
+              .readAttributes(['priceOption']);
+            if (!rawOption) return;
+            const currentMode = await self.getMode(zclNode);
+            // Mode absent ou inconnu (lecture partielle): on ne touche à rien
+            if (![0, 1, 2, 3, 5, 7].includes(Number(currentMode && currentMode.mode))) return;
+            const key = `${currentMode.mode}|${self._normalizePriceOption(rawOption)}`;
+            if (key === self._layoutKey) {
+              self._pendingLayoutKey = null;
+              return;
+            }
+            // Changement confirmé par deux lectures consécutives avant de refaire la mise en page
+            if (self._pendingLayoutKey !== key) {
+              self._pendingLayoutKey = key;
+              return;
+            }
+            self._pendingLayoutKey = null;
+            self.log(`[LAYOUT] Mode ou option modifié (${self._layoutKey} -> ${key}), mise en page recalculée`);
+            priceOption = rawOption;
+            self._nextTariffChange = null;
+            await self.prepareMode(currentMode, rawOption);
+          } catch (e) {
+            self.log(`[LAYOUT] Vérification du mode impossible: ${e && e.message ? e.message : e}`);
+          }
+        }, 5 * 60 * 1000);
 
         // Enregistre la condition Flow "period_option_is"
         try {
@@ -341,6 +387,13 @@ class Device extends ZigBeeDevice {
           self.error(`Failed to register trigger card period_option_became: ${e && e.message ? e.message : e}`);
         }
 
+        // Carte de déclenchement "le tarif fournisseur change" (mode standard, NTARF)
+        try {
+          self._supplierTariffChangedCard = self.homey.flow.getDeviceTriggerCard('supplier_tariff_changed');
+        } catch (e) {
+          self.error(`Failed to register trigger card supplier_tariff_changed: ${e && e.message ? e.message : e}`);
+        }
+
         // Enregistre les cartes de déclenchement Flow pour les couleurs Tempo
         try {
           // Couleur d'aujourd'hui
@@ -433,8 +486,10 @@ class Device extends ZigBeeDevice {
                 return;
               }
 
-              await self.setCapabilityValue('price_period_capability', newValue);
               self._lastPeriod = newValue;
+              if (self.hasCapability('price_period_capability')) {
+                await self.setCapabilityValue('price_period_capability', newValue);
+              }
               self._lastPeriodChangeTs = now;
               if (self._periodOptionBecameCard) {
                 await self._periodOptionBecameCard.trigger(self, { target: newValue }, { target: newValue });
@@ -487,15 +542,36 @@ class Device extends ZigBeeDevice {
 
         setInterval(async () => {
           try {
-            const {
-              subscribeIntensity,
-            } = await zclNode.endpoints[self.getClusterEndpoint(MeterIdentificationCluster)]
-              .clusters[MeterIdentificationCluster.NAME]
-              .readAttributes([
-                'subscribeIntensity'
-              ]);
+            // 0x000D = ISOUSC (A) en historique, PREF (kVA) en standard; 0x000E = PCOUP (kVA).
+            // Lecture brute: décodage selon le type envoyé, et statut visible dans Debug.
+            let ident;
+            try {
+              ident = await RawAttributes.readRaw(
+                zclNode.endpoints[self.getClusterEndpoint(MeterIdentificationCluster)]
+                  .clusters[MeterIdentificationCluster.NAME],
+                [0x000D, 0x000E]
+              );
+            } catch (e) {
+              self._diag = { ...(self._diag || {}), pref: 'err', pcoup: 'err' };
+              throw e;
+            }
+            const valueOf = r => (r && r.status === 0 ? r.value : undefined);
+            const subscribeIntensity = valueOf(ident[0x000D]);
+            const powerThreshold = valueOf(ident[0x000E]);
+            self._diag = {
+              ...(self._diag || {}),
+              pref: RawAttributes.describe(ident[0x000D]),
+              pcoup: RawAttributes.describe(ident[0x000E]),
+            };
 
-            await self.setCapabilityValue('subscribe_intensity_capability', subscribeIntensity);
+            if (self.getCapabilityValue('mode_capability') === 'standard') {
+              const kva = [subscribeIntensity, powerThreshold].map(Number).find(v => Number.isFinite(v) && v > 0);
+              if (self.hasCapability('subscribed_power_capability')) {
+                await self.setCapabilityValue('subscribed_power_capability', kva ?? null);
+              }
+            } else if (self.hasCapability('subscribe_intensity_capability') && subscribeIntensity !== undefined) {
+              await self.setCapabilityValue('subscribe_intensity_capability', subscribeIntensity);
+            }
 
             self.log(`Cluster meter identification return response correctly`);
           } catch (e) {
@@ -538,8 +614,14 @@ class Device extends ZigBeeDevice {
             // On continue à mettre à jour la capability d'option tarifaire pour compatibilité existante
             await self._updatePriceOptionIfChanged(priceOption);
 
+            // Couleurs Tempo (et API en ligne de secours) uniquement pour un contrat Tempo / BBR:
+            // sinon le registre de statuts ne porte aucune couleur et l'heuristique d'inversion
+            // d'octets ou l'API produisaient une couleur sans objet.
+            const tempoContract = self._isTempoContract(priceOption);
+
             if (self.getCapabilityValue('mode_capability') === 'standard') {
-              // lecture et décodage de la couleur de demain via registerStatus (bits 24-25)
+              // lecture du registre de statuts STGE: couleur du jour (bits 24-25) et de demain
+              // (bits 26-27) pour Tempo, dépassement de puissance (bit 7) pour l'alarme
               try {
                 const { registerStatus } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
                   .clusters[LixeePrivateCluster.NAME]
@@ -549,13 +631,14 @@ class Device extends ZigBeeDevice {
                 tomorrowRaw = registerStatus;
                 // Parse en entier non signé avant l'extraction de la couleur
                 let regDec = self._parseRegisterToUint32(registerStatus);
-                normTomorrow = self._extractTomorrowFromRegister(regDec);
-                normToday = self._extractTodayFromRegister(regDec);
+                self._lastStge = regDec;
+                if (tempoContract) {
+                  normTomorrow = self._extractTomorrowFromRegister(regDec);
+                  normToday = self._extractTodayFromRegister(regDec);
+                }
 
                 try {
-                  const todayStr = normToday ?? '----';
-                  const tomorrowStr = normTomorrow ?? '----';
-                  const debugValue = `${priceOption} - ${tomorrowRaw} - ${regDec} - ${todayStr} | ${tomorrowStr}`;
+                  const debugValue = self._buildDebugValue(priceOption, regDec, tempoContract, normToday, normTomorrow);
                   if (self.hasCapability('debug_capability') && self.getCapabilityValue('debug_capability') !== debugValue) {
                     await self.setCapabilityValue('debug_capability', debugValue);
                   }
@@ -566,10 +649,12 @@ class Device extends ZigBeeDevice {
                 // Plus de fallback en mode standard: on log l'erreur et on n'écrase pas la valeur courante
                 self.log(`[WARN] registerStatus read failed (standard mode, no fallback): ${e && e.message ? e.message : e}`);
               }
-              await self.setCapabilityValue('apparent_power_instant_inject_capability', apparentPowerInstInject ? apparentPowerInstInject : 0);
+              if (self.hasCapability('apparent_power_instant_inject_capability')) {
+                await self.setCapabilityValue('apparent_power_instant_inject_capability', apparentPowerInstInject ? apparentPowerInstInject : 0);
+              }
             } else {
               // Mode historique/Tempo: lecture tomorrowColor (texte) puis normalisation
-              try {
+              if (tempoContract) try {
                 const { tomorrowColor } = await zclNode.endpoints[self.getClusterEndpoint(LixeePrivateCluster)]
                   .clusters[LixeePrivateCluster.NAME]
                   .readAttributes([
@@ -584,12 +669,14 @@ class Device extends ZigBeeDevice {
               }
             }
 
-            await self.setCapabilityValue('clock_full_hour_empty_hour_capability', clockFullHourEmptyHour);
+            if (self.hasCapability('clock_full_hour_empty_hour_capability')) {
+              await self.setCapabilityValue('clock_full_hour_empty_hour_capability', clockFullHourEmptyHour);
+            }
             // N'actualise la capability que si on a une valeur normalisée valide
             // Fallback API Tempo si aujourd'hui ET demain sont inconnus ('----')
             try {
-              const todayUnknown = (normToday === null || normToday === '----');
-              const tomorrowUnknown = (normTomorrow === null || normTomorrow === '----');
+              const todayUnknown = tempoContract && (normToday === null || normToday === '----');
+              const tomorrowUnknown = tempoContract && (normTomorrow === null || normTomorrow === '----');
               if (todayUnknown) {
                 const apiColor = await self._fetchTempoTodayColor();
                 if (apiColor) {
@@ -613,17 +700,22 @@ class Device extends ZigBeeDevice {
               self.log(`[TEMPO API] Erreur lors du fallback: ${e && e.message ? e.message : e}`);
             }
 
-            if (normTomorrow !== null) {
+            if (normTomorrow !== null && self.hasCapability('tomorrow_color_capability')) {
               self.log(`[TOMORROW] Raw='${tomorrowRaw}' -> Normalized='${normTomorrow}'`);
               await self._updateTomorrowColorIfChanged(normTomorrow);
             }
 
-            if (normToday !== null) {
+            if (normToday !== null && self.hasCapability('today_color_capability')) {
               self.log(`[TODAY] Raw='${tomorrowRaw}' -> Normalized='${normToday}'`);
               await self._updateTodayColorIfChanged(normToday);
             }
 
-            await self.setCapabilityValue('alarm_subscribe_power_capability', subscribePowerAlert !== 0);
+            // Historique: ADPS (avertissement de dépassement). Standard: bit 7 du registre de
+            // statuts STGE (« dépassement de la puissance de référence »), ADPS n'existant pas.
+            const overpower = (self.getCapabilityValue('mode_capability') === 'standard')
+              ? (Number.isFinite(self._lastStge) ? ((self._lastStge >>> 7) & 1) === 1 : null)
+              : (Number.isFinite(Number(subscribePowerAlert)) ? Number(subscribePowerAlert) !== 0 : null);
+            await self._updateOverpowerAlarm(overpower);
 
             self.log(`Cluster lixee private return response correctly`);
           } catch (e) {
@@ -701,15 +793,27 @@ class Device extends ZigBeeDevice {
               await self.setCapabilityValue('phase_1_apparent_power_capability', apparentPower);
               await self.setCapabilityValue('phase_2_apparent_power_capability', phase2ApparentPower ?? 0);
               await self.setCapabilityValue('phase_3_apparent_power_capability', phase3ApparentPower ?? 0);
-              await self.setCapabilityValue('measure_power', parseInt(apparentPower) + parseInt(phase2ApparentPower ?? 0) + parseInt(phase3ApparentPower ?? 0));
+              await self._applyPowerTitle();
+              await self.setCapabilityValue('measure_power', self._powerForHomeyEnergy(parseInt(apparentPower) + parseInt(phase2ApparentPower ?? 0) + parseInt(phase3ApparentPower ?? 0)));
             } else {
-              await self.setCapabilityValue('measure_power', apparentPower);
+              await self._applyPowerTitle();
+              await self.setCapabilityValue('measure_power', self._powerForHomeyEnergy(apparentPower));
             }
 
-            await self.setCapabilityValue('active_power_capability', activePower);
+            if (self.hasCapability('active_power_capability')) {
+              await self.setCapabilityValue('active_power_capability', activePower);
+            }
             await self.setCapabilityValue('rms_current_capability', rmsCurrent);
-            await self.setCapabilityValue('rms_voltage_capability', rmsVoltage);
-            await self.setCapabilityValue('maximal_intensity_capability', maximalIntensity);
+            if (self.hasCapability('rms_voltage_capability')) {
+              await self.setCapabilityValue('rms_voltage_capability', rmsVoltage);
+            }
+            if (self.hasCapability('maximal_intensity_capability')) {
+              await self.setCapabilityValue('maximal_intensity_capability', maximalIntensity);
+            }
+
+            if (self.getCapabilityValue('mode_capability') === 'standard') {
+              await self._readMaxApparentPower(zclNode);
+            }
 
             self.log(`Cluster electrical measurement return response correctly`);
           } catch (e) {
@@ -761,9 +865,13 @@ class Device extends ZigBeeDevice {
               indexes.hp = Number(currentSummationDeliveredHP);
               indexes.hc = Number(currentSummationDeliveredHC);
 
-              let cumulativeIndex = Math.floor((currentSummationDeliveredHP ?? 0) / 1000) + Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
-              await self.setCapabilityValue('meter_power', cumulativeIndex);
-              await self.setCapabilityValue('meter_power.imported', cumulativeIndex);
+              // En mode standard, l'index total vient de EAST (voir _readStandardSupplierIndexes):
+              // la somme EASF01 + EASF02 ignore les autres index fournisseur (mercredi, week-end...).
+              if (self.getCapabilityValue('mode_capability') !== 'standard') {
+                let cumulativeIndex = Math.floor((currentSummationDeliveredHP ?? 0) / 1000) + Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
+                await self.setCapabilityValue('meter_power', cumulativeIndex);
+                await self.setCapabilityValue('meter_power.imported', cumulativeIndex);
+              }
 
               self.log(`currentSummationDeliveredHP=${currentSummationDeliveredHP} currentSummationDeliveredHC=${currentSummationDeliveredHC}`);
               self.log(`hpLastValue=${hpLastValue} hcLastValue=${hcLastValue}`);
@@ -907,6 +1015,17 @@ class Device extends ZigBeeDevice {
               await self.setCapabilityValue('empty_hour_red_capability', currentSummationDeliveredHCR);
             }
 
+            // Mode standard: index fournisseur EASF01..EASF10 et index tarifaire en cours
+            // (NTARF / LTARF), quelle que soit l'offre. Erreur isolée: le reste du cycle continue.
+            if (self.getCapabilityValue('mode_capability') === 'standard') {
+              try {
+                await self._readStandardSupplierIndexes(zclNode, indexes, currentSummationDelivered);
+              } catch (e) {
+                self._nextTariffChange = null;
+                self.log(`[STANDARD] Lecture des index fournisseur impossible: ${e && e.message ? e.message : e}`);
+              }
+            }
+
             await self.setCapabilityValue('meter_power.exported', activeEnergyTotalInjected ? (activeEnergyTotalInjected / 1000) : 0);
 
             await self._updateDailyCost(indexes);
@@ -926,7 +1045,7 @@ class Device extends ZigBeeDevice {
 
   // Liste les capabilities pertinentes pour ce compteur: mode (historique/standard),
   // nombre de phases et option tarifaire. Les autres sont toujours présentes.
-  _computeApplicableCapabilities(mode, phase, priceOption) {
+  _computeApplicableCapabilities(mode, phase, priceOption, producteur = false) {
     const CONDITIONAL_CAPABILITIES = [
       'full_hour_capability',
       'empty_hour_capability',
@@ -937,6 +1056,26 @@ class Device extends ZigBeeDevice {
       'full_hour_red_capability',
       'empty_hour_red_capability',
       'apparent_power_instant_inject_capability',
+      'supplier_tariff_capability',
+      'estimated_active_power_capability',
+      // Historique uniquement (ISOUSC, IMAX, HHPHC): absents ou sans objet en mode standard.
+      // PTEC (période): historique, ou standard avec une option HP/HC, Tempo ou EJP.
+      'subscribe_intensity_capability',
+      'maximal_intensity_capability',
+      'clock_full_hour_empty_hour_capability',
+      'price_period_capability',
+      // Standard uniquement (URMS1, CCASN, programme tarifaire)
+      'rms_voltage_capability',
+      'active_power_capability',
+      'next_tariff_change_capability',
+      'tomorrow_schedule_capability',
+      // Standard uniquement (PREF/PCOUP, SMAXSN, SMAXSN-1)
+      'subscribed_power_capability',
+      'max_apparent_power_today_capability',
+      'max_apparent_power_yesterday_capability',
+      // Couleurs Tempo: seulement pour un contrat Tempo / BBR
+      'today_color_capability',
+      'tomorrow_color_capability',
       'phase_1_apparent_power_capability',
       'phase_2_apparent_power_capability',
       'phase_3_apparent_power_capability'
@@ -961,7 +1100,33 @@ class Device extends ZigBeeDevice {
     }
 
     if (mode === 'standard') {
-      applicable.add('apparent_power_instant_inject_capability');
+      // SINSTI n'est transmis qu'en mode standard producteur
+      if (producteur) applicable.add('apparent_power_instant_inject_capability');
+      applicable.add('supplier_tariff_capability');
+      applicable.add('next_tariff_change_capability');
+      applicable.add('tomorrow_schedule_capability');
+      applicable.add('rms_voltage_capability');
+      applicable.add('active_power_capability');
+      // Tuile séparée inutile quand la tuile principale affiche déjà la puissance active estimée
+      if (this._powerSource() !== 'active_estimated') applicable.add('estimated_active_power_capability');
+      applicable.add('subscribed_power_capability');
+      applicable.add('max_apparent_power_today_capability');
+      applicable.add('max_apparent_power_yesterday_capability');
+    } else {
+      applicable.add('subscribe_intensity_capability');
+      applicable.add('maximal_intensity_capability');
+      applicable.add('clock_full_hour_empty_hour_capability');
+    }
+
+    // Période tarifaire: historique (PTEC), et en standard pour les options dont la période est
+    // déduite des index HP/HC (comportement de la 1.5.0, cartes Flow « période »)
+    if (mode !== 'standard' || HP_HC_PRICE_OPTIONS.includes(priceOption) || COLORED_PRICE_OPTIONS.includes(priceOption)) {
+      applicable.add('price_period_capability');
+    }
+
+    if (this._isTempoContract(priceOption)) {
+      applicable.add('today_color_capability');
+      applicable.add('tomorrow_color_capability');
     }
 
     if (phase === 'triphase') {
@@ -1021,6 +1186,7 @@ class Device extends ZigBeeDevice {
         .catch(e => this.error(`[LAYOUT] addCapability(${capability}) a échoué: ${e && e.message ? e.message : e}`));
 
       // addCapability ne réinjecte pas les capabilitiesOptions du manifeste
+      if (capability === 'measure_power') this._powerTitleKey = null;
       if (CAPABILITY_OPTIONS[capability] && this.hasCapability(capability)) {
         await this.setCapabilityOptions(capability, CAPABILITY_OPTIONS[capability])
           .catch(e => this.error(`[LAYOUT] setCapabilityOptions(${capability}) a échoué: ${e && e.message ? e.message : e}`));
@@ -1084,9 +1250,13 @@ class Device extends ZigBeeDevice {
       this.log(`[INFO] Phase forcée à ${phase}: aucune mesure sur les phases 2 et 3`);
     }
 
+    // Mémorisé pour refaire la mise en page quand un réglage d'affichage change
+    this._layoutArgs = [mode, phase, priceOption, producteur !== undefined];
     const layoutChanged = await this._applyCapabilityLayout(
-      this._computeApplicableCapabilities(mode, phase, priceOption)
+      this._computeApplicableCapabilities(...this._layoutArgs)
     );
+    // Clé de la mise en page courante: la surveillance du mode la recalcule si elle change
+    this._layoutKey = `${currentMode.mode}|${priceOption}`;
 
     // Le réordonnancement a pu recréer le bouton de maintenance: on réenregistre son listener
     if (layoutChanged) {
@@ -1572,13 +1742,19 @@ Device.prototype._computeDailyCost = function(priceOption, state, indexes, setti
 // `indexes` contient les index bruts en Wh collectés dans l'intervalle metering.
 Device.prototype._updateDailyCost = async function(indexes) {
   try {
+    // Valorisation par index fournisseur sans index lus (lecture en échec sur ce relevé): on garde
+    // les dernières valeurs plutôt que de compter la journée à l'abonnement seul
+    if (this._costOption() === 'STANDARD' && !Object.keys(indexes).some(k => /^f\d\d$/.test(k))) return;
+
     // Derniers index connus, utilisés par resetDailyCost() qui est appelé hors de cet intervalle
     this._lastIndexes = indexes;
 
     if (!this.hasCapability('measure_daily_cost_capability')) return;
 
     const settings = this.getSettings();
-    const priceOption = this.getCapabilityValue('price_option_capability');
+    // En mode standard, dès qu'un prix par index fournisseur est saisi, on valorise index par
+    // index (EASF01..EASF10) au lieu de passer par l'option tarifaire: exact pour toute offre.
+    const priceOption = this._costOption(settings);
     const dayKey = Tariff.localDayKey(new Date(), this.homey.clock.getTimezone());
 
     let state = this._costState || await this.getStoreValue('cost_state');
@@ -1594,6 +1770,7 @@ Device.prototype._updateDailyCost = async function(indexes) {
     } else if (state.day !== dayKey) {
       // Passage de minuit: on fige le coût de la veille puis on repart de zéro
       const closingCost = this._computeDailyCost(priceOption, state, indexes, settings);
+      await this._closeDayIntoMonth(state.day, closingCost, dayKey);
       state = {
         day: dayKey,
         baseline: Tariff.reconcileBaseline({}, indexes)
@@ -1617,22 +1794,415 @@ Device.prototype._updateDailyCost = async function(indexes) {
       }
     }
 
-    await this.setCapabilityValue(
-      'measure_daily_cost_capability',
-      this._computeDailyCost(priceOption, state, indexes, settings)
-    );
+    const todayCost = this._computeDailyCost(priceOption, state, indexes, settings);
+    await this.setCapabilityValue('measure_daily_cost_capability', todayCost);
+
+    if (this.hasCapability('measure_month_cost_capability')) {
+      const monthState = await this._getMonthState(dayKey);
+      await this.setCapabilityValue(
+        'measure_month_cost_capability',
+        Tariff.monthToDateCost(monthState, dayKey, todayCost)
+      );
+    }
 
     if (this.hasCapability('measure_current_kwh_price_capability')) {
       await this.setCapabilityValue('measure_current_kwh_price_capability', Tariff.currentKwhPrice(
         priceOption,
         this.getCapabilityValue('price_period_capability'),
         this.getCapabilityValue('today_color_capability'),
-        settings
+        settings,
+        this._currentTariffIndex
       ));
     }
   } catch (e) {
     this.error(`_updateDailyCost failed: ${e && e.message ? e.message : e}`);
   }
+};
+
+// Puissance transmise à Homey Energy (measure_power): apparente par défaut (instantanée),
+// ou active estimée si l'utilisateur l'a choisi et qu'une estimation est disponible.
+Device.prototype._powerForHomeyEnergy = function(apparentPower) {
+  if (this._powerSource() === 'active_estimated'
+    && this.getCapabilityValue('mode_capability') === 'standard'
+    && Number.isFinite(this._estimatedActivePower)) {
+    return this._estimatedActivePower;
+  }
+  return apparentPower;
+};
+
+// Titre de la tuile principale (measure_power, seule proposée comme indicateur d'état et
+// utilisée par Homey Energy), aligné sur la puissance réellement transmise.
+// Mis en cache: setCapabilityOptions n'est appelé que si le titre change.
+Device.prototype._applyPowerTitle = async function(source) {
+  if (!this.hasCapability('measure_power')) return;
+  const active = (source ?? this._powerSource()) === 'active_estimated'
+    && this.getCapabilityValue('mode_capability') === 'standard';
+  const title = active
+    ? { en: 'Estimated active power', fr: 'Puissance active estimée' }
+    : { en: 'Apparent power (VA)', fr: 'Puissance apparente (VA)' };
+  const key = title.en;
+  if (this._powerTitleKey === key) return;
+  await this.setCapabilityOptions('measure_power', { ...CAPABILITY_OPTIONS['measure_power'], title })
+    .then(() => {
+      this._powerTitleKey = key;
+      this._diag = { ...(this._diag || {}), title: 'ok' };
+    })
+    .catch(e => {
+      this._diag = { ...(this._diag || {}), title: `err ${e && e.message ? e.message : e}`.slice(0, 60) };
+      this.error(`setCapabilityOptions measure_power failed: ${e && e.message ? e.message : e}`);
+    });
+};
+
+// Réglages: le changement de source de puissance met à jour le titre tout de suite
+Device.prototype.onSettings = async function({ oldSettings, newSettings, changedKeys }) {
+  if (typeof ZigBeeDevice.prototype.onSettings === 'function') {
+    await ZigBeeDevice.prototype.onSettings.call(this, { oldSettings, newSettings, changedKeys });
+  }
+  if (changedKeys.includes('power_source')) {
+    this._powerTitleKey = null;
+    this._powerSourceOverride = newSettings.power_source;
+    await this._applyPowerTitle(newSettings.power_source);
+    // Affiche ou retire la tuile « Puissance active estimée » séparée (doublon sinon)
+    if (this._layoutArgs) {
+      try {
+        const layoutChanged = await this._applyCapabilityLayout(this._computeApplicableCapabilities(...this._layoutArgs));
+        // La remise en ordre a pu recréer le bouton de maintenance: on réenregistre son listener
+        if (layoutChanged) {
+          this._resetDailyCostListenerRegistered = false;
+          this.registerResetDailyCostListener();
+        }
+      } catch (e) {
+        this.error(`relayout after power_source change failed: ${e && e.message ? e.message : e}`);
+      }
+    }
+  }
+};
+
+// Source de puissance de la tuile principale. Pendant onSettings, getSetting renvoie encore
+// l'ancienne valeur: on utilise la nouvelle, transmise par onSettings.
+Device.prototype._powerSource = function() {
+  if (this._powerSourceOverride !== undefined) return this._powerSourceOverride;
+  return typeof this.getSetting === 'function' ? this.getSetting('power_source') : undefined;
+};
+
+// true pour un contrat Tempo (historique BBR ou nom de calendrier fournisseur contenant TEMPO)
+Device.prototype._isTempoContract = function(rawOrNormalizedOption) {
+  return /TEMPO|BBR/i.test(String(rawOrNormalizedOption ?? ''));
+};
+
+// Alarme de dépassement: met à jour la tuile et déclenche les cartes Flow « atteinte /
+// n'est pas atteinte » (déclarées mais jamais déclenchées jusqu'ici). null = inconnu.
+Device.prototype._updateOverpowerAlarm = async function(value) {
+  if (value === null || !this.hasCapability('alarm_subscribe_power_capability')) return;
+  const previous = this.getCapabilityValue('alarm_subscribe_power_capability');
+  if (previous === value) return;
+  await this.setCapabilityValue('alarm_subscribe_power_capability', value);
+  // Pas de déclenchement au premier relevé (valeur précédente inconnue)
+  if (previous === null || previous === undefined) return;
+  const cardId = value ? 'alarm_subscribe_power_capability_true' : 'alarm_subscribe_power_capability_false';
+  try {
+    await this.homey.flow.getDeviceTriggerCard(cardId).trigger(this, {}, {});
+  } catch (e) {
+    this.error(`trigger ${cardId} failed: ${e && e.message ? e.message : e}`);
+  }
+};
+
+// Mode standard: puissance apparente maximale du jour (SMAXSN) et de la veille (SMAXSN-1),
+// transmises en VA et affichées en kVA comme la puissance souscrite.
+// Lecture par identifiant numérique: le type varie selon le firmware (int16 avant v16, int32 depuis).
+Device.prototype._readMaxApparentPower = async function(zclNode) {
+  const tri = this.getCapabilityValue('phase_capability') === 'triphase';
+  try {
+    const todayId = tri ? 0x0304 : 0x050D;
+    const result = (await RawAttributes.readRaw(
+      zclNode.endpoints[this.getClusterEndpoint(CLUSTER.ELECTRICAL_MEASUREMENT)]
+        .clusters[CLUSTER.ELECTRICAL_MEASUREMENT.NAME],
+      [todayId]
+    ))[todayId];
+    this._diag = { ...(this._diag || {}), smaxsn: RawAttributes.describe(result) };
+    if (result && result.status === 0 && Number.isFinite(Number(result.value))
+      && this.hasCapability('max_apparent_power_today_capability')) {
+      await this.setCapabilityValue('max_apparent_power_today_capability', Math.round(Number(result.value) / 10) / 100);
+    }
+  } catch (e) {
+    this._diag = { ...(this._diag || {}), smaxsn: 'err' };
+  }
+  try {
+    const yesterdayId = tri ? 0x0400 : 0x0212;
+    const result = (await RawAttributes.readRaw(
+      zclNode.endpoints[this.getClusterEndpoint(LixeePrivateCluster)]
+        .clusters[LixeePrivateCluster.NAME],
+      [yesterdayId]
+    ))[yesterdayId];
+    if (result && result.status === 0 && Number.isFinite(Number(result.value))
+      && this.hasCapability('max_apparent_power_yesterday_capability')) {
+      await this.setCapabilityValue('max_apparent_power_yesterday_capability', Math.round(Number(result.value) / 10) / 100);
+    }
+  } catch (e) {
+    this.log(`[STANDARD] SMAXSN-1 illisible: ${e && e.message ? e.message : e}`);
+  }
+};
+
+// Programme tarifaire: apprentissage des changements d'index, lecture de PJOURF+1 (toutes les
+// 15 minutes), puis tuiles « Prochain changement de tarif » et « Programme de demain ».
+Device.prototype._updateTariffSchedule = async function(zclNode, tariffIndex) {
+  const now = new Date();
+  const clock = Schedule.localClock(now, this.homey.clock.getTimezone());
+  const tomorrow = Schedule.nextDay(clock.dayKey);
+
+  const observed = Schedule.observe(this._scheduleState || this.getStoreValue('tariff_schedule'), now.getTime(), clock, tariffIndex);
+  let state = observed.state;
+  let dirty = observed.changed;
+
+  if (!this._lastProfileReadTs || now.getTime() - this._lastProfileReadTs > 15 * 60 * 1000) {
+    this._lastProfileReadTs = now.getTime();
+    try {
+      const raw = (await zclNode.endpoints[this.getClusterEndpoint(LixeePrivateCluster)]
+        .clusters[LixeePrivateCluster.NAME]
+        .readAttributes(['nextDayProfile'])).nextDayProfile;
+      const parsed = Schedule.parseNextDayProfile(raw);
+      this._diag = { ...(this._diag || {}), pjourf: parsed ? `${parsed.length} créneaux` : (raw ? 'vide' : 'absent') };
+      if (parsed && JSON.stringify(state.profiles[tomorrow.dayKey]) !== JSON.stringify(parsed)) {
+        state = { ...state, profiles: { ...state.profiles, [tomorrow.dayKey]: parsed } };
+        dirty = true;
+      }
+    } catch (e) {
+      this._diag = { ...(this._diag || {}), pjourf: 'illisible' };
+    }
+  }
+
+  this._scheduleState = state;
+  if (dirty) await this.setStoreValue('tariff_schedule', state).catch(this.error);
+
+  const labels = this.getStoreValue('supplier_index_labels') || {};
+  const settings = this.getSettings();
+  // Tempo / EJP: l'index dépend de la couleur du jour, pas du jour de la semaine: on n'utilise
+  // que le profil transmis par le compteur
+  const rawOption = this.getCapabilityValue('price_option_capability');
+  const useLearned = !this._isTempoContract(rawOption) && !/EJP/i.test(String(rawOption ?? ''));
+  const todaySchedule = Schedule.scheduleFor(state, clock.dayKey, clock.weekday, useLearned);
+  const tomorrowSchedule = Schedule.scheduleFor(state, tomorrow.dayKey, tomorrow.weekday, useLearned);
+  // Sans programme du jour, le créneau de 00:00 de demain ne dit pas à quelle heure le tarif
+  // change ce soir: on ne l'annonce pas. Cas du jour de l'installation, ou d'un Homey resté
+  // hors service toute la veille (le profil du lendemain est relu toutes les 15 minutes).
+  const change = todaySchedule
+    ? Schedule.nextChange(todaySchedule, tomorrowSchedule, clock.minutes, tariffIndex)
+    : null;
+  this._nextTariffChange = change ? { ...change, at: now.getTime() } : null;
+
+  const learnedDays = Object.keys(state.learned || {}).length;
+  const learning = useLearned ? `Apprentissage en cours (${learnedDays}/7 jours)` : 'Programme non transmis par le compteur';
+
+  let nextText = todaySchedule || !tomorrowSchedule ? learning : 'Programme du jour inconnu';
+  if (change) {
+    const label = labels[change.index] || `Index ${String(change.index).padStart(2, '0')}`;
+    const price = Tariff.currentKwhPrice('STANDARD', null, null, settings, change.index);
+    const priceText = price ? ` (${price.toFixed(4).replace('.', ',')} €)` : '';
+    nextText = `${change.tomorrow ? 'Demain ' : ''}${Schedule.formatMinutes(change.minutes)} → ${label}${priceText}`;
+  }
+  const tomorrowText = tomorrowSchedule
+    ? `${Schedule.formatSchedule(tomorrowSchedule.entries, labels)}${tomorrowSchedule.source === 'appris' ? ' (appris)' : ''}`
+    : learning;
+
+  if (this.hasCapability('next_tariff_change_capability')
+    && this.getCapabilityValue('next_tariff_change_capability') !== nextText) {
+    await this.setCapabilityValue('next_tariff_change_capability', nextText);
+  }
+  if (this.hasCapability('tomorrow_schedule_capability')
+    && this.getCapabilityValue('tomorrow_schedule_capability') !== tomorrowText) {
+    await this.setCapabilityValue('tomorrow_schedule_capability', tomorrowText);
+  }
+};
+
+// Minutes avant le prochain changement de tarif connu, null si inconnu (condition Flow)
+Device.prototype.getMinutesToNextTariffChange = function() {
+  const change = this._nextTariffChange;
+  if (!change || !Number.isFinite(change.at)) return null;
+  const elapsed = (Date.now() - change.at) / 60000;
+  // Valeur périmée (plus de relevé depuis 2 minutes): inconnue
+  if (elapsed > 2) return null;
+  return Math.max(0, change.inMinutes - elapsed);
+};
+
+// Suffixe de diagnostic ajouté à la tuile Debug (valeurs brutes utiles pour un rapport)
+// Tuile Debug (mode standard), utile pour un rapport de bug: contrat (NGTF), registre de
+// statuts STGE décodé (index fournisseur et distributeur en cours, dépassement), état du
+// programme du lendemain, couleurs Tempo pour un contrat Tempo, puis seulement les lectures
+// en échec (les valeurs lues correctement ont leur propre tuile).
+Device.prototype._buildDebugValue = function(rawOption, stge, tempoContract, today, tomorrow) {
+  const parts = [String(rawOption ?? '').replace(/\0/g, '').trim() || '?'];
+  if (Number.isFinite(stge)) {
+    const hex = (stge >>> 0).toString(16).toUpperCase().padStart(8, '0');
+    const overpower = ((stge >>> 7) & 1) === 1 ? ', dépassement' : '';
+    parts.push(`STGE ${hex} (fournisseur ${((stge >>> 10) & 0x0F) + 1}, distributeur ${((stge >>> 14) & 0x03) + 1}${overpower})`);
+  }
+  if (tempoContract) parts.push(`Tempo ${today ?? '----'} / ${tomorrow ?? '----'}`);
+  return parts.join(' · ') + this._diagSuffix();
+};
+
+// Diagnostic: programme du lendemain, puis uniquement les lectures en échec
+Device.prototype._diagSuffix = function() {
+  const d = this._diag || {};
+  const out = [];
+  if (d.pjourf !== undefined) out.push(`PJOURF+1 ${d.pjourf}`);
+  const failed = (name, v) => {
+    if (v === undefined || (typeof v === 'string' && v !== '')) out.push(`${name} ${v === undefined ? 'absent' : v}`);
+  };
+  if (this.getCapabilityValue && this.getCapabilityValue('mode_capability') === 'standard') {
+    failed('PREF', d.pref);
+    failed('PCOUP', d.pcoup);
+    failed('SMAXSN', d.smaxsn);
+  }
+  if (typeof d.title === 'string' && d.title.startsWith('err')) out.push(`titre ${d.title}`);
+  return out.length ? ` · ${out.join(' · ')}` : '';
+};
+
+// Option utilisée pour valoriser la consommation: 'STANDARD' (prix par index fournisseur)
+// dès qu'un prix par index est saisi en mode standard, sinon l'option tarifaire du compteur.
+Device.prototype._costOption = function(settings = this.getSettings()) {
+  return this._useSupplierIndexPrices(settings)
+    ? 'STANDARD'
+    : this.getCapabilityValue('price_option_capability');
+};
+
+// État du cumul mensuel (mémoire puis store), initialisé sur le mois de dayKey si absent
+Device.prototype._getMonthState = async function(dayKey) {
+  let monthState = this._monthState || await this.getStoreValue('month_cost_state');
+  if (!monthState || !monthState.month) {
+    monthState = { month: String(dayKey).slice(0, 7), closed: 0 };
+    this._monthState = monthState;
+    await this.setStoreValue('month_cost_state', monthState).catch(this.error);
+  }
+  this._monthState = monthState;
+  return monthState;
+};
+
+// Ajoute le coût de la journée close au cumul du mois; au changement de mois, publie le coût
+// du mois écoulé et repart de zéro.
+Device.prototype._closeDayIntoMonth = async function(closedDayKey, closingCost, newDayKey) {
+  try {
+    const current = await this._getMonthState(closedDayKey);
+    const { state, lastMonthCost } = Tariff.closeDayIntoMonth(current, closedDayKey, closingCost, newDayKey);
+    this._monthState = state;
+    await this.setStoreValue('month_cost_state', state).catch(this.error);
+    if (lastMonthCost !== null && this.hasCapability('measure_last_month_cost_capability')) {
+      await this.setCapabilityValue('measure_last_month_cost_capability', lastMonthCost);
+      this.log(`[COST] Mois ${closedDayKey.slice(0, 7)} clos à ${lastMonthCost}€`);
+    }
+  } catch (e) {
+    this.error(`_closeDayIntoMonth failed: ${e && e.message ? e.message : e}`);
+  }
+};
+
+// true si le coût doit être calculé index fournisseur par index fournisseur (mode standard
+// et au moins un prix 'price_index_xx' renseigné)
+Device.prototype._useSupplierIndexPrices = function(settings) {
+  return this.getCapabilityValue('mode_capability') === 'standard'
+    && Tariff.hasSupplierIndexPrices(settings || this.getSettings());
+};
+
+// Mode standard: lit EASF01..EASF10, NTARF et LTARF.
+// - complète `indexes` avec les clés f01..f10 (Wh) pour la valorisation;
+// - publie l'index total à partir de EAST (currentSummationDelivered), au Wh près;
+// - met à jour le tarif fournisseur en cours et déclenche le Flow s'il change;
+// - mémorise le libellé de chaque index pour l'afficher dans les réglages.
+Device.prototype._readStandardSupplierIndexes = async function(zclNode, indexes, east) {
+  // Index nul: le ZLinky n'a pas encore reçu de trame TIC. On n'exploite rien de ce relevé, sinon
+  // des index à zéro recaleraient la référence du coût du jour et fausseraient la suite.
+  if (!(Number(east) > 0)) throw new Error('EAST nul, trame TIC pas encore reçue');
+
+  const metering = zclNode.endpoints[this.getClusterEndpoint(CLUSTER.METERING)]
+    .clusters[CLUSTER.METERING.NAME];
+
+  // Même registres que HC/HP/HCW/HPW/HCR/HPR en historique = EASF01..EASF06 en standard.
+  // Deux lectures de 5 attributs pour rester sous la taille d'une trame Zigbee.
+  const first = await metering.readAttributes([
+    'currentSummationDeliveredHC', 'currentSummationDeliveredHP',
+    'currentSummationDeliveredHCW', 'currentSummationDeliveredHPW',
+    'currentSummationDeliveredHCR',
+  ]);
+  const second = await metering.readAttributes([
+    'currentSummationDeliveredHPR',
+    'supplierIndex07', 'supplierIndex08', 'supplierIndex09', 'supplierIndex10',
+  ]);
+  const raw = [
+    first.currentSummationDeliveredHC, first.currentSummationDeliveredHP,
+    first.currentSummationDeliveredHCW, first.currentSummationDeliveredHPW,
+    first.currentSummationDeliveredHCR, second.currentSummationDeliveredHPR,
+    second.supplierIndex07, second.supplierIndex08, second.supplierIndex09, second.supplierIndex10,
+  ];
+  Tariff.SUPPLIER_INDEX_NUMBERS.forEach((n, i) => {
+    const value = Number(raw[i]);
+    if (Number.isFinite(value)) indexes[Tariff.supplierIndexKey(n)] = value;
+  });
+
+  // Puissance active estimée à partir de la pente de EAST (le Linky n'en transmet pas)
+  if (!this._activePowerEstimator) this._activePowerEstimator = new ActivePowerEstimator();
+  const estimated = this._activePowerEstimator.push(Date.now(), Number(east));
+  this._estimatedActivePower = estimated;
+  if (estimated !== null && this.hasCapability('estimated_active_power_capability')
+    && this.getCapabilityValue('estimated_active_power_capability') !== estimated) {
+    await this.setCapabilityValue('estimated_active_power_capability', estimated);
+  }
+
+  // Index total = EAST, qui couvre tous les index fournisseur
+  const eastKwh = Number(east) / 1000;
+  if (Number.isFinite(eastKwh) && eastKwh > 0 && eastKwh !== this.getCapabilityValue('meter_power.imported')) {
+    await this.setCapabilityValue('meter_power', eastKwh);
+    await this.setCapabilityValue('meter_power.imported', eastKwh);
+  }
+
+  const { currentTariffLabel, currentTariffIndex } = await zclNode
+    .endpoints[this.getClusterEndpoint(LixeePrivateCluster)]
+    .clusters[LixeePrivateCluster.NAME]
+    .readAttributes(['currentTariffLabel', 'currentTariffIndex']);
+
+  const tariffIndex = Number(currentTariffIndex);
+  if (!Number.isInteger(tariffIndex) || tariffIndex < 1 || tariffIndex > 10) return;
+  const label = String(currentTariffLabel ?? '').replace(/\0/g, '').trim() || `Index ${String(tariffIndex).padStart(2, '0')}`;
+
+  const previousIndex = this._currentTariffIndex;
+  this._currentTariffIndex = tariffIndex;
+
+  if (this.hasCapability('supplier_tariff_capability')
+    && this.getCapabilityValue('supplier_tariff_capability') !== label) {
+    await this.setCapabilityValue('supplier_tariff_capability', label);
+  }
+
+  await this._rememberTariffLabel(tariffIndex, label);
+  await this._refreshTariffLabelsSetting();
+  await this._updateTariffSchedule(zclNode, tariffIndex)
+    .catch(e => this.error(`_updateTariffSchedule failed: ${e && e.message ? e.message : e}`));
+
+  // Pas de déclenchement au premier relevé après démarrage
+  if (previousIndex !== undefined && previousIndex !== tariffIndex && this._supplierTariffChangedCard) {
+    const price = Tariff.currentKwhPrice('STANDARD', null, null, this.getSettings(), tariffIndex);
+    await this._supplierTariffChangedCard
+      .trigger(this, { label, index: tariffIndex, price: price ?? 0 }, {})
+      .catch(e => this.error(`supplier_tariff_changed trigger failed: ${e && e.message ? e.message : e}`));
+    this.log(`[STANDARD] Tarif fournisseur: index ${previousIndex} -> ${tariffIndex} (${label})`);
+  }
+};
+
+// Mémorise le libellé LTARF de chaque index et le recopie dans le réglage en lecture seule
+// 'supplier_index_labels', pour que l'utilisateur sache quel prix saisir dans quel champ.
+Device.prototype._rememberTariffLabel = async function(tariffIndex, label) {
+  const labels = { ...(this.getStoreValue('supplier_index_labels') || {}) };
+  if (labels[tariffIndex] === label) return;
+
+  labels[tariffIndex] = label;
+  await this.setStoreValue('supplier_index_labels', labels).catch(this.error);
+  await this._refreshTariffLabelsSetting();
+};
+
+// Réécrit le réglage 'supplier_index_labels' si besoin, en signalant les index sans prix.
+// Appelé à chaque relevé: un prix saisi entre-temps fait disparaître la mention.
+Device.prototype._refreshTariffLabelsSetting = async function() {
+  const settings = this.getSettings();
+  const text = Tariff.supplierLabelsText(this.getStoreValue('supplier_index_labels') || {}, settings);
+  if (!text || text === settings.supplier_index_labels) return;
+  await this.setSettings({ supplier_index_labels: text })
+    .catch(e => this.error(`setSettings supplier_index_labels failed: ${e && e.message ? e.message : e}`));
 };
 
 // (Ré)enregistre le listener du bouton de maintenance "Remettre à zéro le coût du jour".
@@ -1668,11 +2238,12 @@ Device.prototype.resetDailyCost = async function() {
 
   if (this.hasCapability('measure_daily_cost_capability')) {
     // Recalculé plutôt que forcé à 0, pour réafficher immédiatement la part d'abonnement
+    const settings = this.getSettings();
     const total = this._computeDailyCost(
-      this.getCapabilityValue('price_option_capability'),
+      this._costOption(settings),
       state,
       this._lastIndexes || {},
-      this.getSettings()
+      settings
     );
     await this.setCapabilityValue('measure_daily_cost_capability', total)
       .catch(e => this.error(`reset measure_daily_cost_capability failed: ${e && e.message ? e.message : e}`));

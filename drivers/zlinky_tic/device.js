@@ -1993,16 +1993,34 @@ Device.prototype._updateTariffSchedule = async function(zclNode, tariffIndex) {
   const learnedDays = Object.keys(state.learned || {}).length;
   const learning = useLearned ? `Apprentissage en cours (${learnedDays}/7 jours)` : 'Programme non transmis par le compteur';
 
+  const priceOf = index => Tariff.currentKwhPrice('STANDARD', null, null, settings, index);
+  const priceText = price => `${price.toFixed(4).replace('.', ',')} €`;
+
+  // Tuiles: textes courts, lisibles sur une ligne dans l'app mobile (environ 16 caractères).
+  // L'heure suffit: le prochain changement tombe toujours dans les 24 heures.
   let nextText = todaySchedule || !tomorrowSchedule ? learning : 'Programme du jour inconnu';
   if (change) {
+    const price = priceOf(change.index);
     const label = labels[change.index] || `Index ${String(change.index).padStart(2, '0')}`;
-    const price = Tariff.currentKwhPrice('STANDARD', null, null, settings, change.index);
-    const priceText = price ? ` (${price.toFixed(4).replace('.', ',')} €)` : '';
-    nextText = `${change.tomorrow ? 'Demain ' : ''}${Schedule.formatMinutes(change.minutes)} → ${label}${priceText}`;
+    nextText = `${Schedule.formatMinutes(change.minutes)} → ${price ? priceText(price) : label}`;
   }
   const tomorrowText = tomorrowSchedule
-    ? `${Schedule.formatSchedule(tomorrowSchedule.entries, labels)}${tomorrowSchedule.source === 'appris' ? ' (appris)' : ''}`
+    ? Schedule.summarizeSchedule(tomorrowSchedule.entries, labels, priceOf)
     : learning;
+
+  // Détail dans les réglages: un champ par jour, deux lignes courtes (une par niveau tarifaire,
+  // HC / HP), car l'app mobile n'affiche que les deux premières lignes d'un réglage en lecture seule
+  const describe = schedule => (schedule
+    ? `${Schedule.describeDay(schedule.entries, labels, priceOf)}${schedule.source === 'appris' ? ' (appris)' : ''}`
+    : 'Inconnu');
+  const scheduleSettings = {
+    tariff_schedule_today: describe(todaySchedule),
+    tariff_schedule_tomorrow: describe(tomorrowSchedule),
+  };
+  if (Object.keys(scheduleSettings).some(k => settings[k] !== scheduleSettings[k])) {
+    await this.setSettings(scheduleSettings)
+      .catch(e => this.error(`setSettings tariff schedule failed: ${e && e.message ? e.message : e}`));
+  }
 
   if (this.hasCapability('next_tariff_change_capability')
     && this.getCapabilityValue('next_tariff_change_capability') !== nextText) {

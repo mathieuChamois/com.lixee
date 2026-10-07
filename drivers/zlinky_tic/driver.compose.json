@@ -182,6 +182,32 @@
           "value": ""
         },
         {
+          "id": "tariff_schedule_today",
+          "type": "label",
+          "label": {
+            "en": "Today's schedule",
+            "fr": "Programme du jour"
+          },
+          "hint": {
+            "en": "Time slots per tariff level: HC = cheapest entered price, HP = the other (or the meter label when prices are not entered). Sent by the meter (PJOURF+1), or learned from previous weeks when marked (appris).",
+            "fr": "Créneaux par niveau tarifaire : HC = prix saisi le plus bas, HP = l'autre (libellé du compteur si les prix ne sont pas saisis). Transmis par le compteur (PJOURF+1), ou appris les semaines précédentes si la mention (appris) est présente."
+          },
+          "value": ""
+        },
+        {
+          "id": "tariff_schedule_tomorrow",
+          "type": "label",
+          "label": {
+            "en": "Tomorrow's schedule",
+            "fr": "Programme de demain"
+          },
+          "hint": {
+            "en": "Time slots per tariff level: HC = cheapest entered price, HP = the other (or the meter label when prices are not entered). Sent by the meter (PJOURF+1), or learned from previous weeks when marked (appris).",
+            "fr": "Créneaux par niveau tarifaire : HC = prix saisi le plus bas, HP = l'autre (libellé du compteur si les prix ne sont pas saisis). Transmis par le compteur (PJOURF+1), ou appris les semaines précédentes si la mention (appris) est présente."
+          },
+          "value": ""
+        },
+        {
           "id": "price_index_01",
           "type": "number",
           "label": {

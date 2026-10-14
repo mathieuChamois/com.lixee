@@ -70,7 +70,8 @@
         "en": "Apparent power",
         "fr": "Puissance apparente"
       },
-      "decimals": 2
+      "decimals": 2,
+      "insights": true
     },
     "button.reset_daily_cost": {
       "maintenanceAction": true,

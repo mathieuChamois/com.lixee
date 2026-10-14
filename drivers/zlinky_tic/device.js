@@ -179,6 +179,7 @@ class Device extends ZigBeeDevice {
         self.log('[INFO] priceOption est ' + priceOption.toString());
 
         await self.prepareMode(await self.getMode(zclNode), priceOption);
+        await self._logNextDayProfile(zclNode);
 
         // Enregistre la condition Flow "period_option_is"
         try {
@@ -766,6 +767,7 @@ class Device extends ZigBeeDevice {
 
               self.log(`currentSummationDeliveredHP=${currentSummationDeliveredHP} currentSummationDeliveredHC=${currentSummationDeliveredHC}`);
               self.log(`hpLastValue=${hpLastValue} hcLastValue=${hcLastValue}`);
+              self.log(`[PERIOD] brut HP(0x0102)=${currentSummationDeliveredHP} Wh (delta ${hpLastValue ? currentSummationDeliveredHP - hpLastValue : 'n/a'}) | HC(0x0100)=${currentSummationDeliveredHC} Wh (delta ${hcLastValue ? currentSummationDeliveredHC - hcLastValue : 'n/a'}) | période actuelle=${self._lastPeriod}${await self._readCurrentTariffLabel(zclNode)}`);
 
               if (hpLastValue == 0) {
                 hpLastValue = currentSummationDeliveredHP;
@@ -827,6 +829,8 @@ class Device extends ZigBeeDevice {
               self.log(`hpLastWhiteValue=${hpWhiteLastValue} hcWhiteLastValue=${hcWhiteLastValue}`);
               self.log(`currentSummationDeliveredHP=${currentSummationDeliveredHP} currentSummationDeliveredHC=${currentSummationDeliveredHC}`);
               self.log(`hpLastRedValue=${hpRedLastValue} hcRedLastValue=${hcRedLastValue}`);
+              const rawDelta = (current, last) => (last ? current - last : 'n/a');
+              self.log(`[PERIOD] brut HPJB(0x0102)=${currentSummationDeliveredHP} (delta ${rawDelta(currentSummationDeliveredHP, hpBlueLastValue)}) HCJB(0x0100)=${currentSummationDeliveredHC} (delta ${rawDelta(currentSummationDeliveredHC, hcBlueLastValue)}) | HPJW(0x0106)=${currentSummationDeliveredHPW} (delta ${rawDelta(currentSummationDeliveredHPW, hpWhiteLastValue)}) HCJW(0x0104)=${currentSummationDeliveredHCW} (delta ${rawDelta(currentSummationDeliveredHCW, hcWhiteLastValue)}) | HPJR(0x010A)=${currentSummationDeliveredHPR} (delta ${rawDelta(currentSummationDeliveredHPR, hpRedLastValue)}) HCJR(0x0108)=${currentSummationDeliveredHCR} (delta ${rawDelta(currentSummationDeliveredHCR, hcRedLastValue)}) | période actuelle=${self._lastPeriod}${await self._readCurrentTariffLabel(zclNode)}`);
 
               if (hpBlueLastValue == 0) {
                 hpBlueLastValue = currentSummationDeliveredHP;
@@ -1404,8 +1408,65 @@ Device.prototype._extractTodayFromRegister = function(reg) {
   }
 };
 
+// Diagnostic de la période HP/HC: en mode standard, renvoie le tarif en cours annoncé par le
+// compteur (LTARF / NTARF) sous forme de suffixe de log. Chaîne vide en mode historique ou si
+// la lecture échoue (firmware ZLinky ne les exposant pas).
+Device.prototype._readCurrentTariffLabel = async function(zclNode) {
+  if (this.getCapabilityValue('mode_capability') !== 'standard') return '';
+  try {
+    const {
+      currentTariffLabel,
+      currentTariffIndex
+    } = await zclNode.endpoints[this.getClusterEndpoint(LixeePrivateCluster)]
+      .clusters[LixeePrivateCluster.NAME]
+      .readAttributes([
+        'currentTariffLabel',
+        'currentTariffIndex'
+      ]);
+    const label = String(currentTariffLabel ?? '').replace(/\0/g, '').trim();
+    return ` | compteur: LTARF='${label}' NTARF=${currentTariffIndex}`;
+  } catch (e) {
+    return ` | compteur: LTARF/NTARF illisibles (${e && e.message ? e.message : e})`;
+  }
+};
+
+// Diagnostic de la période HP/HC: en mode standard, logue le profil du prochain jour (PJOURF+1),
+// soit jusqu'à 11 blocs 'HHMMAAAA' (heure de début + code action), les blocs inutilisés valant
+// 'NONUTILE'. Le ZLinky encode l'heure et les minutes en hexadécimal (ex: '0D1E' = 13h30).
+// Le dernier chiffre de l'action est lu comme le numéro d'index tarifaire (même valeur que NTARF).
+Device.prototype._logNextDayProfile = async function(zclNode) {
+  if (this.getCapabilityValue('mode_capability') !== 'standard') return;
+  try {
+    const { nextDayProfile } = await zclNode.endpoints[this.getClusterEndpoint(LixeePrivateCluster)]
+      .clusters[LixeePrivateCluster.NAME]
+      .readAttributes([
+        'nextDayProfile'
+      ]);
+    const raw = String(nextDayProfile ?? '').replace(/\0/g, '').trim();
+    const pad = n => String(n).padStart(2, '0');
+    const slots = raw.split(/\s+/)
+      .filter(block => /^[0-9A-Fa-f]{8}$/.test(block))
+      .map(block => {
+        const hours = parseInt(block.slice(0, 2), 16);
+        const minutes = parseInt(block.slice(2, 4), 16);
+        const action = block.slice(4).toUpperCase();
+        return `${pad(hours)}h${pad(minutes)} -> index ${parseInt(action.slice(-1), 16)} (action ${action})`;
+      });
+    this.log(`[PERIOD] PJOURF+1 brut='${raw}'`);
+    this.log(`[PERIOD] PJOURF+1 plages: ${slots.length ? slots.join(' | ') : 'aucune plage décodable'}`);
+  } catch (e) {
+    this.log(`[PERIOD] PJOURF+1 illisible: ${e && e.message ? e.message : e}`);
+  }
+};
+
+// Options tarifaires reconnues après normalisation
+const KNOWN_PRICE_OPTIONS = ['BASE', 'TEMPO', 'HC..', 'HPHC', 'EJP.', 'BBR'];
+
 // Normalise l'option tarifaire lue sur le compteur: nettoyage de la chaîne puis alias
-// ('BBRx' -> 'BBR', 'HC..'/'H PLEINE/CREUSE' -> 'HPHC', 'EJP' -> 'EJP.').
+// ('BBRx' -> 'BBR', 'HC..'/'H PLEINE/CREUSE'/'H PLEINE-CREUSE' -> 'HPHC', 'EJP' -> 'EJP.').
+// En mode historique l'attribut contient OPTARIF (BASE, HC.., EJP., BBRx où x est variable).
+// En mode standard il contient NGTF, nom de calendrier libre choisi par le fournisseur
+// (ex: 'HC SEM WE MERCR'): s'il n'est pas reconnu, on le classe par mots-clés.
 // Retourne une chaîne vide si la lecture est vide.
 Device.prototype._normalizePriceOption = function(raw) {
   let val = String(raw ?? '').replace(/\0/g, '').trim();
@@ -1414,7 +1475,18 @@ Device.prototype._normalizePriceOption = function(raw) {
   if (val === 'BBRx') val = 'BBR';
   if (val === 'HC..') val = 'HPHC';
   if (val === 'H PLEINE/CREUSE') val = 'HPHC';
+  if (val === 'H PLEINE-CREUSE') val = 'HPHC';
   if (val === 'EJP') val = 'EJP.';
+  if (val.toUpperCase().includes('OHM') && val.toUpperCase().includes('HPHC')) val = 'HPHC';
+
+  if (!KNOWN_PRICE_OPTIONS.includes(val)) {
+    const u = val.toUpperCase();
+    if (u.startsWith('BBR')) val = 'BBR';
+    else if (u.includes('TEMPO')) val = 'TEMPO';
+    else if (u.includes('EJP')) val = 'EJP.';
+    else if (/(^|[^A-Z])H[CP]([^A-Z]|$)|HPHC|HCHP|CREUS|PLEIN/.test(u)) val = 'HPHC';
+    else if (u.includes('BASE')) val = 'BASE';
+  }
 
   return val;
 };
@@ -1436,8 +1508,7 @@ Device.prototype._updatePriceOptionIfChanged = async function(newValue) {
 
     if (!val) return;
 
-    const VALID = ['BASE', 'TEMPO', 'HC..', 'HPHC', 'EJP.', 'BBR'];
-    if (!VALID.includes(val)) val = 'UNKN';
+    if (!KNOWN_PRICE_OPTIONS.includes(val)) val = 'UNKN';
 
     if (this.hasCapability('debug_capability')) {
       const currentDebugValue = this.getCapabilityValue('debug_capability') || '';

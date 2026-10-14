@@ -158,6 +158,8 @@ const CAPABILITY_OPTIONS = {
 const HP_HC_PRICE_OPTIONS = ['HC..', 'HP..', 'HPHC', 'BBR', 'EJP.'];
 // Options tarifaires nécessitant les index par couleur (bleu / blanc / rouge)
 const COLORED_PRICE_OPTIONS = ['TEMPO', 'BBR', 'EJP.'];
+// Options HP/HC simples (deux index)
+const HPHC_OPTIONS = ['HPHC', 'HC..'];
 
 class Device extends ZigBeeDevice {
   async onNodeInit({ zclNode }) {
@@ -883,7 +885,7 @@ class Device extends ZigBeeDevice {
 
               if (currentSummationDeliveredHP != hpLastValue) {
                 hpLastValue = currentSummationDeliveredHP;
-                await self._updatePeriodIfChanged('HP..');
+                if (self._periodFromDeltas()) await self._updatePeriodIfChanged('HP..');
               }
 
               currentSummationDeliveredHP = Math.floor((currentSummationDeliveredHP ?? 0) / 1000);
@@ -895,7 +897,7 @@ class Device extends ZigBeeDevice {
 
               if (currentSummationDeliveredHC != hcLastValue) {
                 hcLastValue = currentSummationDeliveredHC;
-                await self._updatePeriodIfChanged('HC..');
+                if (self._periodFromDeltas()) await self._updatePeriodIfChanged('HC..');
               }
 
               currentSummationDeliveredHC = Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
@@ -1119,8 +1121,15 @@ class Device extends ZigBeeDevice {
     }
 
     // Période tarifaire: historique (PTEC), et en standard pour les options dont la période est
-    // déduite des index HP/HC (comportement de la 1.5.0, cartes Flow « période »)
-    if (mode !== 'standard' || HP_HC_PRICE_OPTIONS.includes(priceOption) || COLORED_PRICE_OPTIONS.includes(priceOption)) {
+    // déduite des index HP/HC (comportement de la 1.5.0, cartes Flow « période »). Exception:
+    // une offre HP/HC en mode standard qui utilise plus de deux index fournisseur (mercredi,
+    // week-end...). Sa période ne se déduit pas de EASF01 / EASF02 et un même libellé peut être
+    // facturé à des prix différents (« HP MERCREDI » au prix HC): le tarif en cours est donné par
+    // les tuiles « Tarif fournisseur » et « Prix du kWh actuel ».
+    this._layoutMultiIndex = this._usesExtraSupplierIndexes();
+    const multiIndexHpHc = mode === 'standard' && HPHC_OPTIONS.includes(priceOption) && this._layoutMultiIndex;
+    if (mode !== 'standard'
+      || ((HP_HC_PRICE_OPTIONS.includes(priceOption) || COLORED_PRICE_OPTIONS.includes(priceOption)) && !multiIndexHpHc)) {
       applicable.add('price_period_capability');
     }
 
@@ -1863,19 +1872,39 @@ Device.prototype.onSettings = async function({ oldSettings, newSettings, changed
     this._powerSourceOverride = newSettings.power_source;
     await this._applyPowerTitle(newSettings.power_source);
     // Affiche ou retire la tuile « Puissance active estimée » séparée (doublon sinon)
-    if (this._layoutArgs) {
-      try {
-        const layoutChanged = await this._applyCapabilityLayout(this._computeApplicableCapabilities(...this._layoutArgs));
-        // La remise en ordre a pu recréer le bouton de maintenance: on réenregistre son listener
-        if (layoutChanged) {
-          this._resetDailyCostListenerRegistered = false;
-          this.registerResetDailyCostListener();
-        }
-      } catch (e) {
-        this.error(`relayout after power_source change failed: ${e && e.message ? e.message : e}`);
-      }
-    }
+    await this._reapplyLayout();
   }
+};
+
+// Recalcule la mise en page (tuiles affichées) avec les paramètres du dernier prepareMode
+Device.prototype._reapplyLayout = async function() {
+  if (!this._layoutArgs) return;
+  try {
+    const layoutChanged = await this._applyCapabilityLayout(this._computeApplicableCapabilities(...this._layoutArgs));
+    // La remise en ordre a pu recréer le bouton de maintenance: on réenregistre son listener
+    if (layoutChanged) {
+      this._resetDailyCostListenerRegistered = false;
+      this.registerResetDailyCostListener();
+    }
+  } catch (e) {
+    this.error(`relayout failed: ${e && e.message ? e.message : e}`);
+  }
+};
+
+// true si le compteur a déjà utilisé un index fournisseur au-delà de 2 (offre à plus de deux
+// périodes: mercredi, week-end...). Les libellés vus sont mémorisés, l'information survit
+// aux redémarrages.
+Device.prototype._usesExtraSupplierIndexes = function() {
+  const labels = (typeof this.getStoreValue === 'function' && this.getStoreValue('supplier_index_labels')) || {};
+  return Object.keys(labels).some(k => Number(k) > 2) || Number(this._currentTariffIndex) > 2;
+};
+
+// false quand la période ne doit pas être déduite des index HP/HC: offre HP/HC en mode
+// standard qui utilise d'autres index fournisseur (la période resterait figée le mercredi,
+// le week-end...). Évite aussi de déclencher les Flows « période » à tort.
+Device.prototype._periodFromDeltas = function() {
+  if (this.getCapabilityValue('mode_capability') !== 'standard') return true;
+  return !(HPHC_OPTIONS.includes(this.getCapabilityValue('price_option_capability')) && this._usesExtraSupplierIndexes());
 };
 
 // Source de puissance de la tuile principale. Pendant onSettings, getSetting renvoie encore
@@ -2189,6 +2218,11 @@ Device.prototype._readStandardSupplierIndexes = async function(zclNode, indexes,
 
   await this._rememberTariffLabel(tariffIndex, label);
   await this._refreshTariffLabelsSetting();
+  // Premier index au-delà de 2 rencontré: la mise en page change (tuile Période, voir
+  // _computeApplicableCapabilities)
+  if (this._layoutArgs && this._layoutMultiIndex === false && this._usesExtraSupplierIndexes()) {
+    await this._reapplyLayout();
+  }
   await this._updateTariffSchedule(zclNode, tariffIndex)
     .catch(e => this.error(`_updateTariffSchedule failed: ${e && e.message ? e.message : e}`));
 

@@ -889,7 +889,9 @@ class Device extends ZigBeeDevice {
               }
 
               currentSummationDeliveredHP = Math.floor((currentSummationDeliveredHP ?? 0) / 1000);
-              await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHP);
+              if (self.hasCapability('full_hour_capability')) {
+                await self.setCapabilityValue('full_hour_capability', currentSummationDeliveredHP);
+              }
 
               if (hcLastValue == 0) {
                 hcLastValue = currentSummationDeliveredHC;
@@ -901,7 +903,9 @@ class Device extends ZigBeeDevice {
               }
 
               currentSummationDeliveredHC = Math.floor((currentSummationDeliveredHC ?? 0) / 1000);
-              await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHC);
+              if (self.hasCapability('empty_hour_capability')) {
+                await self.setCapabilityValue('empty_hour_capability', currentSummationDeliveredHC);
+              }
             }
 
             if (self.getCapabilityValue('price_option_capability') === 'TEMPO' || self.getCapabilityValue('price_option_capability') === 'BBR' || self.getCapabilityValue('price_option_capability') === 'EJP.') {
@@ -1087,7 +1091,14 @@ class Device extends ZigBeeDevice {
       CAPABILITY_ORDER.filter(capability => !CONDITIONAL_CAPABILITIES.includes(capability))
     );
 
-    if (HP_HC_PRICE_OPTIONS.includes(priceOption)) {
+    // Offre HP/HC en mode standard qui utilise plus de deux index fournisseur (mercredi,
+    // week-end...): les index HP (EASF02) et HC (EASF01) n'en couvrent qu'une partie, et la
+    // période ne s'en déduit pas. Le tarif en cours est donné par « Tarif fournisseur » et
+    // « Prix du kWh actuel », le coût par les prix par index fournisseur.
+    this._layoutMultiIndex = this._usesExtraSupplierIndexes();
+    const multiIndexHpHc = mode === 'standard' && HPHC_OPTIONS.includes(priceOption) && this._layoutMultiIndex;
+
+    if (HP_HC_PRICE_OPTIONS.includes(priceOption) && !multiIndexHpHc) {
       applicable.add('full_hour_capability');
       applicable.add('empty_hour_capability');
     }
@@ -1121,13 +1132,9 @@ class Device extends ZigBeeDevice {
     }
 
     // Période tarifaire: historique (PTEC), et en standard pour les options dont la période est
-    // déduite des index HP/HC (comportement de la 1.5.0, cartes Flow « période »). Exception:
-    // une offre HP/HC en mode standard qui utilise plus de deux index fournisseur (mercredi,
-    // week-end...). Sa période ne se déduit pas de EASF01 / EASF02 et un même libellé peut être
-    // facturé à des prix différents (« HP MERCREDI » au prix HC): le tarif en cours est donné par
-    // les tuiles « Tarif fournisseur » et « Prix du kWh actuel ».
-    this._layoutMultiIndex = this._usesExtraSupplierIndexes();
-    const multiIndexHpHc = mode === 'standard' && HPHC_OPTIONS.includes(priceOption) && this._layoutMultiIndex;
+    // déduite des index HP/HC (comportement de la 1.5.0, cartes Flow « période »), sauf offre
+    // HP/HC à plus de deux index (voir plus haut): un même libellé peut y être facturé à des
+    // prix différents (« HP MERCREDI » au prix HC).
     if (mode !== 'standard'
       || ((HP_HC_PRICE_OPTIONS.includes(priceOption) || COLORED_PRICE_OPTIONS.includes(priceOption)) && !multiIndexHpHc)) {
       applicable.add('price_period_capability');

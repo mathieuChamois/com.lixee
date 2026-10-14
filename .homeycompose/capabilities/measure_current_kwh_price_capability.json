@@ -10,6 +10,6 @@
   "units": { "en": "€/kWh" },
   "decimals": 4,
   "min": 0,
-  "insights": false,
+  "insights": true,
   "icon": "/assets/euro.svg"
 }

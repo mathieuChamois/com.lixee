@@ -1,8 +1,8 @@
 {
   "type": "number",
   "title": {
-    "en": "Active energy",
-    "fr": "Énergie active"
+    "en": "Active power (30 min average)",
+    "fr": "Puissance active (moyenne 30 min)"
   },
   "uiComponent": "sensor",
   "getable": true,

@@ -1,0 +1,15 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Current kWh price",
+    "fr": "Prix du kWh actuel"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "units": { "en": "€/kWh" },
+  "decimals": 4,
+  "min": 0,
+  "insights": true,
+  "icon": "/assets/euro.svg"
+}

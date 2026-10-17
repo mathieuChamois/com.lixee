@@ -1,0 +1,11 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Cost yesterday (deprecated)",
+    "fr": "Coût d'hier (obsolète)"
+  },
+  "uiComponent": null,
+  "getable": true,
+  "setable": false,
+  "insights": false
+}

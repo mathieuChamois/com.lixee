@@ -51,6 +51,13 @@
   },
   "homepage": "https://lixee.fr/",
   "support": "https://github.com/mathieuChamois/com.lixee",
+  "contributing": {
+    "donate": {
+      "githubSponsors": {
+        "username": "mathieuChamois"
+      }
+    }
+  },
   "flow": {
     "triggers": [
       {

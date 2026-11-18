@@ -51,6 +51,218 @@
   },
   "homepage": "https://lixee.fr/",
   "support": "https://github.com/mathieuChamois/com.lixee",
+  "drivers": [
+    {
+      "name": {
+        "en": "LiXee ZiPulses Water Meter",
+        "fr": "Compteur d'eau LiXee ZiPulses",
+        "da": "LiXee ZiPulses vandmåler"
+      },
+      "class": "sensor",
+      "platforms": [
+        "local",
+        "cloud"
+      ],
+      "connectivity": [
+        "zigbee"
+      ],
+      "capabilities": [
+        "meter_water",
+        "measure_pulses",
+        "measure_temperature",
+        "measure_battery"
+      ],
+      "capabilitiesOptions": {
+        "meter_water": {
+          "title": {
+            "en": "Water meter",
+            "fr": "Compteur d'eau",
+            "da": "Vandmåler"
+          }
+        },
+        "measure_temperature": {
+          "title": {
+            "en": "Sensor temperature",
+            "fr": "Température du capteur",
+            "da": "Sensortemperatur"
+          }
+        },
+        "measure_battery": {
+          "title": {
+            "en": "Battery",
+            "fr": "Batterie",
+            "da": "Batteri"
+          }
+        }
+      },
+      "energy": {
+        "cumulative": true,
+        "batteries": [
+          "CR2450"
+        ]
+      },
+      "zigbee": {
+        "manufacturerName": "LiXee",
+        "productId": [
+          "ZiPulses"
+        ],
+        "endpoints": {
+          "1": {
+            "clusters": [
+              0,
+              1,
+              3,
+              1026,
+              1794
+            ],
+            "bindings": [
+              1,
+              1026,
+              1794
+            ]
+          }
+        },
+        "learnmode": {
+          "image": "/drivers/zipulses/assets/learnmode.svg",
+          "instruction": {
+            "en": "If ZiPulses is not on a Zigbee network, briefly press Link to start pairing. If it is still associated with another network, hold Link for about 10 seconds to leave that network. During pairing, wake the device repeatedly with short Link presses so Homey can bind the Battery, Temperature and Metering clusters.",
+            "fr": "Si le ZiPulses n'est associé à aucun réseau Zigbee, appuyez brièvement sur Link pour lancer l'appairage. S'il est encore associé à un autre réseau, maintenez Link enfoncé environ 10 secondes pour le quitter. Pendant l'appairage, réveillez l'appareil plusieurs fois par de courts appuis sur Link afin que Homey puisse lier les clusters Batterie, Température et Comptage.",
+            "da": "Hvis ZiPulses ikke er på et Zigbee-netværk, tryk kort på Link for at starte parring. Hvis den stadig er tilknyttet et andet netværk, hold Link inde i ca. 10 sekunder for at forlade netværket. Under parringen skal enheden vækkes gentagne gange med korte tryk på Link, så Homey kan binde Batteri-, Temperatur- og Metering-clusterne."
+          }
+        }
+      },
+      "images": {
+        "small": "/drivers/zipulses/assets/images/small.png",
+        "large": "/drivers/zipulses/assets/images/large.png",
+        "xlarge": "/drivers/zipulses/assets/images/xlarge.png"
+      },
+      "id": "zipulses",
+      "settings": [
+        {
+          "id": "pulses_per_m3",
+          "type": "number",
+          "label": {
+            "en": "Pulses per m³",
+            "fr": "Impulsions par m³",
+            "da": "Pulser pr. m³"
+          },
+          "value": 1000,
+          "attr": {
+            "min": 1,
+            "max": 10000000,
+            "step": 1
+          },
+          "hint": {
+            "en": "Enter the number of pulses corresponding to 1 m³. Example: 1 pulse per litre = 1000 pulses/m³; 1 pulse per 10 litres = 100 pulses/m³.",
+            "fr": "Indiquez le nombre d'impulsions correspondant à 1 m³. Exemple : 1 impulsion par litre = 1000 impulsions/m³ ; 1 impulsion pour 10 litres = 100 impulsions/m³.",
+            "da": "Indtast hvor mange pulser der svarer til 1 m³. Eksempel: 1 puls pr. liter = 1000 pulser/m³; 1 puls pr. 10 liter = 100 pulser/m³."
+          }
+        }
+      ]
+    },
+    {
+      "name": {
+        "en": "ZLinky_TIC"
+      },
+      "class": "other",
+      "platforms": [
+        "local",
+        "cloud"
+      ],
+      "connectivity": [
+        "cloud"
+      ],
+      "capabilities": [
+        "meter_power",
+        "meter_power.imported",
+        "meter_power.exported",
+        "measure_power",
+        "full_hour_capability",
+        "empty_hour_capability",
+        "full_hour_blue_capability",
+        "empty_hour_blue_capability",
+        "full_hour_white_capability",
+        "empty_hour_white_capability",
+        "full_hour_red_capability",
+        "empty_hour_red_capability",
+        "price_option_capability",
+        "serial_number_capability",
+        "price_period_capability",
+        "today_color_capability",
+        "tomorrow_color_capability",
+        "subscribe_intensity_capability",
+        "alarm_subscribe_power_capability",
+        "apparent_power_instant_inject_capability",
+        "phase_capability",
+        "active_power_capability",
+        "rms_current_capability",
+        "rms_voltage_capability",
+        "maximal_intensity_capability",
+        "phase_2_apparent_power_capability",
+        "phase_3_apparent_power_capability",
+        "clock_full_hour_empty_hour_capability"
+      ],
+      "images": {
+        "small": "/drivers/zlinky_tic/assets/images/small.png",
+        "large": "/drivers/zlinky_tic/assets/images/large.png"
+      },
+      "capabilitiesOptions": {
+        "meter_power": {
+          "title": {
+            "en": "Summation delivered",
+            "fr": "Index"
+          }
+        },
+        "meter_power.imported": {
+          "title": {
+            "en": "Imported Energy",
+            "fr": "Energie importée"
+          }
+        },
+        "meter_power.exported": {
+          "title": {
+            "en": "Exported Energy",
+            "fr": "Energie exportée"
+          }
+        },
+        "measure_power": {
+          "title": {
+            "en": "Apparent power",
+            "fr": "Puissance apparente"
+          },
+          "decimals": 2
+        }
+      },
+      "energy": {
+        "cumulative": true,
+        "cumulativeImportedCapability": "meter_power.imported",
+        "cumulativeExportedCapability": "meter_power.exported"
+      },
+      "zigbee": {
+        "manufacturerName": "LiXee",
+        "productId": [
+          "ZLinky_TIC"
+        ],
+        "endpoints": {
+          "1": {
+            "clusters": [
+              0,
+              3,
+              1794,
+              2820,
+              2817,
+              4097,
+              65382
+            ],
+            "bindings": [
+              25
+            ]
+          }
+        }
+      },
+      "id": "zlinky_tic"
+    }
+  ],
   "flow": {
     "triggers": [
       {
@@ -369,110 +581,6 @@
       }
     ]
   },
-  "drivers": [
-    {
-      "name": {
-        "en": "ZLinky_TIC"
-      },
-      "class": "other",
-      "platforms": [
-        "local",
-        "cloud"
-      ],
-      "connectivity": [
-        "cloud"
-      ],
-      "capabilities": [
-        "meter_power",
-        "meter_power.imported",
-        "meter_power.exported",
-        "measure_power",
-        "full_hour_capability",
-        "empty_hour_capability",
-        "full_hour_blue_capability",
-        "empty_hour_blue_capability",
-        "full_hour_white_capability",
-        "empty_hour_white_capability",
-        "full_hour_red_capability",
-        "empty_hour_red_capability",
-        "price_option_capability",
-        "serial_number_capability",
-        "price_period_capability",
-        "today_color_capability",
-        "tomorrow_color_capability",
-        "subscribe_intensity_capability",
-        "alarm_subscribe_power_capability",
-        "apparent_power_instant_inject_capability",
-        "phase_capability",
-        "active_power_capability",
-        "rms_current_capability",
-        "rms_voltage_capability",
-        "maximal_intensity_capability",
-        "phase_2_apparent_power_capability",
-        "phase_3_apparent_power_capability",
-        "clock_full_hour_empty_hour_capability"
-      ],
-      "images": {
-        "small": "/drivers/zlinky_tic/assets/images/small.png",
-        "large": "/drivers/zlinky_tic/assets/images/large.png"
-      },
-      "capabilitiesOptions": {
-        "meter_power": {
-          "title": {
-            "en": "Summation delivered",
-            "fr": "Index"
-          }
-        },
-        "meter_power.imported": {
-          "title": {
-            "en": "Imported Energy",
-            "fr": "Energie importée"
-          }
-        },
-        "meter_power.exported": {
-          "title": {
-            "en": "Exported Energy",
-            "fr": "Energie exportée"
-          }
-        },
-        "measure_power": {
-          "title": {
-            "en": "Apparent power",
-            "fr": "Puissance apparente"
-          },
-          "decimals": 2
-        }
-      },
-      "energy": {
-        "cumulative": true,
-        "cumulativeImportedCapability": "meter_power.imported",
-        "cumulativeExportedCapability": "meter_power.exported"
-      },
-      "zigbee": {
-        "manufacturerName": "LiXee",
-        "productId": [
-          "ZLinky_TIC"
-        ],
-        "endpoints": {
-          "1": {
-            "clusters": [
-              0,
-              3,
-              1794,
-              2820,
-              2817,
-              4097,
-              65382
-            ],
-            "bindings": [
-              25
-            ]
-          }
-        }
-      },
-      "id": "zlinky_tic"
-    }
-  ],
   "capabilities": {
     "active_power_capability": {
       "type": "number",
@@ -725,6 +833,25 @@
       "step": 0.5,
       "insights": true,
       "icon": "/assets/current-ac.svg"
+    },
+    "measure_pulses": {
+      "type": "number",
+      "title": {
+        "en": "Pulse count",
+        "fr": "Nombre d'impulsions",
+        "da": "Pulstæller"
+      },
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "pulses",
+        "fr": "impulsions",
+        "da": "pulser"
+      },
+      "decimals": 0,
+      "min": 0,
+      "step": 1,
+      "insights": true
     },
     "mode_capability": {
       "type": "string",

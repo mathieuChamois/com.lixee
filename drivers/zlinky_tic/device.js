@@ -108,8 +108,8 @@ const CAPABILITY_ORDER = [
   RESET_DAILY_COST_BUTTON
 ];
 
-// Repli triphasé -> monophasé décidé à partir des mesures, mémorisé pour que l'ordre des
-// capabilities reste stable d'un démarrage à l'autre
+// Ancien repli triphasé -> monophasé déduit des mesures (abandonné): la clé n'est plus lue que
+// pour être effacée sur les appareils concernés
 const PHASE_OVERRIDE_STORE = 'phase_override';
 
 // Options héritées du manifeste du driver: addCapability ne les réinjecte pas, il faut donc les
@@ -761,36 +761,9 @@ class Device extends ZigBeeDevice {
               phase3ApparentPower = 0;
             }
 
-            if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase' && phase2ApparentPower == 0 && phase3ApparentPower == 0 && !phase2Unavailable && !phase3Unavailable) {
-              if (self.hasCapability('phase_1_apparent_power_capability')) {
-                await self.removeCapability('phase_1_apparent_power_capability')
-                  .catch(this.error);
-              }
-
-              if (self.hasCapability('phase_2_apparent_power_capability')) {
-                await self.removeCapability('phase_2_apparent_power_capability')
-                  .catch(this.error);
-              }
-
-              if (self.hasCapability('phase_3_apparent_power_capability')) {
-                await self.removeCapability('phase_3_apparent_power_capability')
-                  .catch(this.error);
-              }
-
-              await self.setCapabilityValue('phase_capability', 'monophase');
-              // Mémorisé pour que prepareMode ne rajoute pas les capabilities de phase au
-              // prochain démarrage: l'ordre des capabilities reste ainsi stable
-              await self.setStoreValue(PHASE_OVERRIDE_STORE, 'monophase')
-                .catch(self.error);
-            } else if (self.getStoreValue(PHASE_OVERRIDE_STORE) === 'monophase'
-              && (phase2ApparentPower > 0 || phase3ApparentPower > 0)) {
-              // Le compteur mesure à nouveau sur les phases 2 et 3: on annule le repli, les
-              // capabilities de phase reviendront au prochain démarrage
-              self.log('[INFO] Mesures présentes sur les phases 2 et 3, repli monophasé annulé');
-              await self.unsetStoreValue(PHASE_OVERRIDE_STORE)
-                .catch(self.error);
-            }
-
+            // Pas de déduction du nombre de phases à partir des mesures: les puissances apparentes
+            // par phase ne comptent que le soutirage, elles valent 0 sur un triphasé producteur qui
+            // injecte ou sans charge sur les phases 2 et 3. Seul le mode du compteur fait foi.
             if (self.hasCapability('phase_capability') && self.getCapabilityValue('phase_capability') == 'triphase') {
               await self.setCapabilityValue('phase_1_apparent_power_capability', apparentPower);
               await self.setCapabilityValue('phase_2_apparent_power_capability', phase2ApparentPower ?? 0);
@@ -1226,7 +1199,7 @@ class Device extends ZigBeeDevice {
     // 1: standard_monophase
     // 2: historique_triphase
     // 3: standard_triphase
-    // 5: historique_triphase_producteur
+    // 5: standard_monophase_producteur
     // 7: standard_triphase_producteur
     switch (modeInt) {
       case 0:
@@ -1258,12 +1231,13 @@ class Device extends ZigBeeDevice {
     this.log(`[INFO] Decoded mode: ${explodedMode.join('_')}`);
     this.log(`[INFO] Price option: ${priceOption}`);
 
-    // Un compteur annoncé triphasé mais qui ne mesure rien sur les phases 2 et 3 est traité comme
-    // monophasé (voir le cluster electrical measurement). Ce repli est mémorisé: sans lui, les
-    // capabilities de phase seraient rajoutées à chaque démarrage.
-    const phase = this.getStoreValue(PHASE_OVERRIDE_STORE) === 'monophase' ? 'monophase' : decodedPhase;
-    if (phase !== decodedPhase) {
-      this.log(`[INFO] Phase forcée à ${phase}: aucune mesure sur les phases 2 et 3`);
+    // Les versions précédentes pouvaient mémoriser à tort un repli monophasé (triphasé producteur
+    // qui injecte): on l'efface pour revenir au nombre de phases annoncé par le compteur.
+    const phase = decodedPhase;
+    if (this.getStoreValue(PHASE_OVERRIDE_STORE) != null) {
+      this.log(`[INFO] Repli monophasé mémorisé supprimé, phase du compteur: ${phase}`);
+      await this.unsetStoreValue(PHASE_OVERRIDE_STORE)
+        .catch(this.error);
     }
 
     // Mémorisé pour refaire la mise en page quand un réglage d'affichage change

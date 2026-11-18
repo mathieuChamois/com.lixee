@@ -4,6 +4,7 @@
     "type": "number",
     "label": {
       "en": "Pulses per m³",
+      "fr": "Impulsions par m³",
       "da": "Pulser pr. m³"
     },
     "value": 1000,
@@ -14,6 +15,7 @@
     },
     "hint": {
       "en": "Enter the number of pulses corresponding to 1 m³. Example: 1 pulse per litre = 1000 pulses/m³; 1 pulse per 10 litres = 100 pulses/m³.",
+      "fr": "Indiquez le nombre d'impulsions correspondant à 1 m³. Exemple : 1 impulsion par litre = 1000 impulsions/m³ ; 1 impulsion pour 10 litres = 100 impulsions/m³.",
       "da": "Indtast hvor mange pulser der svarer til 1 m³. Eksempel: 1 puls pr. liter = 1000 pulser/m³; 1 puls pr. 10 liter = 100 pulser/m³."
     }
   }

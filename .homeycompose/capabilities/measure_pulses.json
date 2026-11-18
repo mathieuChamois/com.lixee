@@ -2,12 +2,14 @@
   "type": "number",
   "title": {
     "en": "Pulse count",
+    "fr": "Nombre d'impulsions",
     "da": "Pulstæller"
   },
   "getable": true,
   "setable": false,
   "units": {
     "en": "pulses",
+    "fr": "impulsions",
     "da": "pulser"
   },
   "decimals": 0,

@@ -61,7 +61,7 @@ class ZiPulsesDevice extends ZigBeeDevice {
 
     const pulsesPerM3 = Number(newSettings.pulses_per_m3);
     if (!Number.isFinite(pulsesPerM3) || pulsesPerM3 <= 0) {
-      throw new Error('Pulser pr. m³ skal være større end 0');
+      throw new Error('Pulses per m³ must be greater than 0 / Le nombre d\'impulsions par m³ doit être supérieur à 0');
     }
 
     const storedPulses = this.getStoreValue(STORE_RAW_PULSES);

@@ -8,3 +8,7 @@ Une fois le ZLinky_TIC inclus dans Homey, vous pouvez :
 - surveiller différents contrats Linky (BASE, HC/HP, Tempo, mono/tri ou production) selon le mode télé-information du compteur (historique ou standard).
 
 Remarque : le module ZLinky_TIC n’est pas compatible avec les compteurs Linky ISKRA disposant d’un port USB, car ils ne possèdent que 2 broches de télé-information.
+
+### Soutenir le projet
+
+Si cette application vous est utile, vous pouvez soutenir son développement via [GitHub Sponsors](https://github.com/sponsors/mathieuChamois) ❤️

@@ -1,6 +1,6 @@
 {
   "id": "com.lixee",
-  "version": "1.4.10",
+  "version": "1.5.4",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "platforms": [
@@ -49,5 +49,12 @@
     ]
   },
   "homepage": "https://lixee.fr/",
-  "support": "https://github.com/mathieuChamois/com.lixee"
+  "support": "https://github.com/mathieuChamois/com.lixee",
+  "contributing": {
+    "donate": {
+      "githubSponsors": {
+        "username": "mathieuChamois"
+      }
+    }
+  }
 }

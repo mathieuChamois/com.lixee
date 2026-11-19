@@ -1,0 +1,17 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Max apparent power yesterday",
+    "fr": "Puissance apparente max hier"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "units": {
+    "en": "kVA"
+  },
+  "decimals": 2,
+  "min": 0,
+  "insights": true,
+  "icon": "/assets/flash.svg"
+}

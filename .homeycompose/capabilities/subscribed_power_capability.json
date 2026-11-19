@@ -1,0 +1,17 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Subscribed power",
+    "fr": "Puissance souscrite"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "units": {
+    "en": "kVA"
+  },
+  "decimals": 0,
+  "min": 0,
+  "insights": true,
+  "icon": "/assets/contract.svg"
+}

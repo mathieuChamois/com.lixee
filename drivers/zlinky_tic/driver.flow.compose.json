@@ -1,6 +1,29 @@
 {
   "triggers": [
     {
+      "id": "supplier_tariff_changed",
+      "title": {
+        "en": "Supplier tariff changed",
+        "fr": "Le tarif fournisseur change"
+      },
+      "titleFormatted": {
+        "en": "Supplier tariff on [[device]] changed",
+        "fr": "Le tarif fournisseur de [[device]] change"
+      },
+      "hint": {
+        "en": "Standard mode only. Fires when the meter switches to another supplier index (NTARF).",
+        "fr": "Mode standard uniquement. Se déclenche quand le compteur passe sur un autre index fournisseur (NTARF)."
+      },
+      "tokens": [
+        { "name": "label", "type": "string", "title": { "en": "Label", "fr": "Libellé" }, "example": "HP SEMAINE" },
+        { "name": "index", "type": "number", "title": { "en": "Index", "fr": "Index" }, "example": 2 },
+        { "name": "price", "type": "number", "title": { "en": "Price (€/kWh)", "fr": "Prix (€/kWh)" }, "example": 0.2403 }
+      ],
+      "args": [
+        { "name": "device", "type": "device", "filter": "driver_id=zlinky_tic", "title": { "en": "Device", "fr": "Appareil" } }
+      ]
+    },
+    {
       "id": "alarm_subscribe_power_capability_true",
       "title": {
         "en": "alarm subscribe power is reached",
@@ -93,6 +116,44 @@
   ],
   "conditions": [
     {
+      "id": "tariff_change_within",
+      "title": {
+        "en": "Tariff changes within ... minutes",
+        "fr": "Le tarif change dans les ... minutes"
+      },
+      "titleFormatted": {
+        "en": "Tariff on [[device]] changes within [[minutes]] minutes",
+        "fr": "Le tarif de [[device]] change dans les [[minutes]] minutes"
+      },
+      "hint": {
+        "en": "Standard mode only. Uses the next-day profile sent by the meter, or the schedule learned from previous weeks. False when the next change is unknown.",
+        "fr": "Mode standard uniquement. Utilise le profil du lendemain transmis par le compteur, ou le programme appris les semaines précédentes. Faux si le prochain changement est inconnu."
+      },
+      "args": [
+        { "name": "device", "type": "device", "filter": "driver_id=zlinky_tic", "title": { "en": "Device", "fr": "Appareil" } },
+        { "name": "minutes", "type": "number", "min": 1, "max": 1440, "step": 1, "placeholder": { "en": "30", "fr": "30" }, "title": { "en": "Minutes", "fr": "Minutes" } }
+      ]
+    },
+    {
+      "id": "current_kwh_price_below",
+      "title": {
+        "en": "Current kWh price is at most ...",
+        "fr": "Le prix du kWh actuel est inférieur ou égal à ..."
+      },
+      "titleFormatted": {
+        "en": "Current kWh price on [[device]] is at most [[price]] €",
+        "fr": "Le prix du kWh actuel de [[device]] est inférieur ou égal à [[price]] €"
+      },
+      "hint": {
+        "en": "Uses the price entered for the current index. False when the price is unknown. Useful to start appliances when electricity is cheap, whatever the label of the period.",
+        "fr": "Utilise le prix saisi pour l'index en cours. Faux si le prix est inconnu. Pratique pour lancer un appareil quand l'électricité est bon marché, quel que soit le libellé de la période."
+      },
+      "args": [
+        { "name": "device", "type": "device", "filter": "driver_id=zlinky_tic", "title": { "en": "Device", "fr": "Appareil" } },
+        { "name": "price", "type": "number", "min": 0, "step": 0.0001, "placeholder": { "en": "0.18", "fr": "0,18" }, "title": { "en": "Price (€/kWh)", "fr": "Prix (€/kWh)" } }
+      ]
+    },
+    {
       "id": "period_option_is",
       "title": { "en": "Period is ...", "fr": "La période est ..." },
       "titleFormatted": {
@@ -116,6 +177,19 @@
           { "id": "UNKN", "name": "Inconnu" }
         ]}
       ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "reset_daily_cost",
+      "title": {
+        "en": "Reset the cost of the day",
+        "fr": "Remettre à zéro le coût du jour"
+      },
+      "titleFormatted": {
+        "en": "Reset the cost of the day on [[device]]",
+        "fr": "Remettre à zéro le coût du jour sur [[device]]"
+      }
     }
   ]
 }

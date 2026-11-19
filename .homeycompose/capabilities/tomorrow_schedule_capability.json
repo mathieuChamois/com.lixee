@@ -1,0 +1,12 @@
+{
+  "type": "string",
+  "title": {
+    "en": "Tomorrow’s schedule",
+    "fr": "Programme de demain"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": false,
+  "icon": "/assets/clock.svg"
+}

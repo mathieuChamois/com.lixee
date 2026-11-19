@@ -1,0 +1,15 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Cost today",
+    "fr": "Coût du jour"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "units": { "en": "€" },
+  "decimals": 2,
+  "min": 0,
+  "insights": true,
+  "icon": "/assets/euro.svg"
+}

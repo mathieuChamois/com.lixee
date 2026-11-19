@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.lixee",
-  "version": "1.4.10",
+  "version": "1.5.4",
   "compatibility": ">=5.0.0",
   "sdk": 3,
   "platforms": [
@@ -51,6 +51,13 @@
   },
   "homepage": "https://lixee.fr/",
   "support": "https://github.com/mathieuChamois/com.lixee",
+  "contributing": {
+    "donate": {
+      "githubSponsors": {
+        "username": "mathieuChamois"
+      }
+    }
+  },
   "drivers": [
     {
       "name": {
@@ -174,9 +181,9 @@
       ],
       "capabilities": [
         "meter_power",
+        "measure_power",
         "meter_power.imported",
         "meter_power.exported",
-        "measure_power",
         "full_hour_capability",
         "empty_hour_capability",
         "full_hour_blue_capability",
@@ -188,19 +195,32 @@
         "price_option_capability",
         "serial_number_capability",
         "price_period_capability",
+        "supplier_tariff_capability",
+        "next_tariff_change_capability",
+        "tomorrow_schedule_capability",
         "today_color_capability",
         "tomorrow_color_capability",
+        "measure_daily_cost_capability",
+        "measure_yesterday_cost_capability",
+        "measure_month_cost_capability",
+        "measure_last_month_cost_capability",
+        "measure_current_kwh_price_capability",
         "subscribe_intensity_capability",
+        "subscribed_power_capability",
         "alarm_subscribe_power_capability",
+        "max_apparent_power_today_capability",
+        "max_apparent_power_yesterday_capability",
         "apparent_power_instant_inject_capability",
         "phase_capability",
         "active_power_capability",
+        "estimated_active_power_capability",
         "rms_current_capability",
         "rms_voltage_capability",
         "maximal_intensity_capability",
         "phase_2_apparent_power_capability",
         "phase_3_apparent_power_capability",
-        "clock_full_hour_empty_hour_capability"
+        "clock_full_hour_empty_hour_capability",
+        "button.reset_daily_cost"
       ],
       "images": {
         "small": "/drivers/zlinky_tic/assets/images/small.png",
@@ -227,12 +247,470 @@
         },
         "measure_power": {
           "title": {
-            "en": "Apparent power",
-            "fr": "Puissance apparente"
+            "en": "Apparent power (VA)",
+            "fr": "Puissance apparente (VA)"
           },
-          "decimals": 2
+          "decimals": 2,
+          "insights": true
+        },
+        "button.reset_daily_cost": {
+          "maintenanceAction": true,
+          "title": {
+            "en": "Reset the cost of the day",
+            "fr": "Remettre à zéro le coût du jour"
+          },
+          "desc": {
+            "en": "Restart the consumption of the day from zero: the reference indexes are set to the current ones. The subscription share of the day remains counted.",
+            "fr": "Repart de zéro pour la consommation du jour: les index de référence sont recalés sur les index actuels. La part d'abonnement du jour reste comptée."
+          }
         }
       },
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "Power",
+            "fr": "Puissance"
+          },
+          "children": [
+            {
+              "id": "power_source",
+              "type": "dropdown",
+              "label": {
+                "en": "Power sent to Homey Energy",
+                "fr": "Puissance transmise à Homey Energy"
+              },
+              "hint": {
+                "en": "Apparent: instantaneous, but includes reactive power, so higher than what you pay for. Estimated active: computed from the energy index (standard mode only), matches what you pay for, smoothed over 30 s to 5 min depending on the load.",
+                "fr": "Apparente : instantanée, mais inclut la puissance réactive, donc plus élevée que ce qui est facturé. Active estimée : calculée à partir de l'index d'énergie (mode standard uniquement), correspond à ce qui est facturé, lissée sur 30 s à 5 min selon la charge."
+              },
+              "value": "apparent",
+              "values": [
+                {
+                  "id": "apparent",
+                  "label": {
+                    "en": "Apparent power (instantaneous)",
+                    "fr": "Puissance apparente (instantanée)"
+                  }
+                },
+                {
+                  "id": "active_estimated",
+                  "label": {
+                    "en": "Estimated active power",
+                    "fr": "Puissance active estimée"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Subscription",
+            "fr": "Abonnement"
+          },
+          "children": [
+            {
+              "id": "price_subscription_monthly",
+              "type": "number",
+              "label": {
+                "en": "Monthly subscription price",
+                "fr": "Prix de l'abonnement"
+              },
+              "hint": {
+                "en": "Monthly amount of your subscription, VAT included. It is spread over the days of the current month and added to the cost of the day.",
+                "fr": "Montant mensuel TTC de votre abonnement. Il est réparti sur les jours du mois en cours et ajouté au coût du jour."
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.01,
+              "units": {
+                "en": "€/month",
+                "fr": "€/mois"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Standard mode: price per supplier index",
+            "fr": "Mode standard : prix par index fournisseur"
+          },
+          "children": [
+            {
+              "id": "supplier_index_labels",
+              "type": "label",
+              "label": {
+                "en": "Indexes seen on your meter",
+                "fr": "Index vus sur votre compteur"
+              },
+              "hint": {
+                "en": "Filled in automatically from the meter (LTARF) as each index becomes active. Enter below the price of each index listed here.",
+                "fr": "Rempli automatiquement à partir du compteur (LTARF), au fur et à mesure que chaque index devient actif. Saisissez ci-dessous le prix de chaque index listé ici."
+              },
+              "value": ""
+            },
+            {
+              "id": "tariff_schedule_today",
+              "type": "label",
+              "label": {
+                "en": "Today's schedule",
+                "fr": "Programme du jour"
+              },
+              "hint": {
+                "en": "Time slots per tariff level: HC = cheapest entered price, HP = the other (or the meter label when prices are not entered). Sent by the meter (PJOURF+1), or learned from previous weeks when marked (appris).",
+                "fr": "Créneaux par niveau tarifaire : HC = prix saisi le plus bas, HP = l'autre (libellé du compteur si les prix ne sont pas saisis). Transmis par le compteur (PJOURF+1), ou appris les semaines précédentes si la mention (appris) est présente."
+              },
+              "value": ""
+            },
+            {
+              "id": "tariff_schedule_tomorrow",
+              "type": "label",
+              "label": {
+                "en": "Tomorrow's schedule",
+                "fr": "Programme de demain"
+              },
+              "hint": {
+                "en": "Time slots per tariff level: HC = cheapest entered price, HP = the other (or the meter label when prices are not entered). Sent by the meter (PJOURF+1), or learned from previous weeks when marked (appris).",
+                "fr": "Créneaux par niveau tarifaire : HC = prix saisi le plus bas, HP = l'autre (libellé du compteur si les prix ne sont pas saisis). Transmis par le compteur (PJOURF+1), ou appris les semaines précédentes si la mention (appris) est présente."
+              },
+              "value": ""
+            },
+            {
+              "id": "price_index_01",
+              "type": "number",
+              "label": {
+                "en": "Index 01 price",
+                "fr": "Prix index 01"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_index_02",
+              "type": "number",
+              "label": {
+                "en": "Index 02 price",
+                "fr": "Prix index 02"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_index_03",
+              "type": "number",
+              "label": {
+                "en": "Index 03 price",
+                "fr": "Prix index 03"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_index_04",
+              "type": "number",
+              "label": {
+                "en": "Index 04 price",
+                "fr": "Prix index 04"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_index_05",
+              "type": "number",
+              "label": {
+                "en": "Index 05 price",
+                "fr": "Prix index 05"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_index_06",
+              "type": "number",
+              "label": {
+                "en": "Index 06 price",
+                "fr": "Prix index 06"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_index_07",
+              "type": "number",
+              "label": {
+                "en": "Index 07 price",
+                "fr": "Prix index 07"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_index_08",
+              "type": "number",
+              "label": {
+                "en": "Index 08 price",
+                "fr": "Prix index 08"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_index_09",
+              "type": "number",
+              "label": {
+                "en": "Index 09 price",
+                "fr": "Prix index 09"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_index_10",
+              "type": "number",
+              "label": {
+                "en": "Index 10 price",
+                "fr": "Prix index 10"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Base option",
+            "fr": "Option Base"
+          },
+          "children": [
+            {
+              "id": "price_base",
+              "type": "number",
+              "label": {
+                "en": "All hours price",
+                "fr": "Prix Toutes Heures"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Peak / Off-peak option",
+            "fr": "Option Heures Pleines / Heures Creuses"
+          },
+          "children": [
+            {
+              "id": "price_hp",
+              "type": "number",
+              "label": {
+                "en": "Peak hours price",
+                "fr": "Prix Heures Pleines"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_hc",
+              "type": "number",
+              "label": {
+                "en": "Off-peak hours price",
+                "fr": "Prix Heures Creuses"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Tempo option",
+            "fr": "Option Tempo"
+          },
+          "children": [
+            {
+              "id": "price_tempo_blue_hp",
+              "type": "number",
+              "label": {
+                "en": "Blue day, peak hours",
+                "fr": "Jour bleu, Heures Pleines"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_tempo_blue_hc",
+              "type": "number",
+              "label": {
+                "en": "Blue day, off-peak hours",
+                "fr": "Jour bleu, Heures Creuses"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_tempo_white_hp",
+              "type": "number",
+              "label": {
+                "en": "White day, peak hours",
+                "fr": "Jour blanc, Heures Pleines"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_tempo_white_hc",
+              "type": "number",
+              "label": {
+                "en": "White day, off-peak hours",
+                "fr": "Jour blanc, Heures Creuses"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_tempo_red_hp",
+              "type": "number",
+              "label": {
+                "en": "Red day, peak hours",
+                "fr": "Jour rouge, Heures Pleines"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_tempo_red_hc",
+              "type": "number",
+              "label": {
+                "en": "Red day, off-peak hours",
+                "fr": "Jour rouge, Heures Creuses"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "EJP option",
+            "fr": "Option EJP"
+          },
+          "children": [
+            {
+              "id": "price_ejp_normal",
+              "type": "number",
+              "label": {
+                "en": "Normal hours price",
+                "fr": "Prix Heures Normales"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            },
+            {
+              "id": "price_ejp_peak",
+              "type": "number",
+              "label": {
+                "en": "Mobile peak price",
+                "fr": "Prix Pointe Mobile"
+              },
+              "value": 0,
+              "min": 0,
+              "step": 0.0001,
+              "units": {
+                "en": "€/kWh"
+              }
+            }
+          ]
+        }
+      ],
       "energy": {
         "cumulative": true,
         "cumulativeImportedCapability": "meter_power.imported",
@@ -265,6 +743,66 @@
   ],
   "flow": {
     "triggers": [
+      {
+        "id": "supplier_tariff_changed",
+        "title": {
+          "en": "Supplier tariff changed",
+          "fr": "Le tarif fournisseur change"
+        },
+        "titleFormatted": {
+          "en": "Supplier tariff on [[device]] changed",
+          "fr": "Le tarif fournisseur de [[device]] change"
+        },
+        "hint": {
+          "en": "Standard mode only. Fires when the meter switches to another supplier index (NTARF).",
+          "fr": "Mode standard uniquement. Se déclenche quand le compteur passe sur un autre index fournisseur (NTARF)."
+        },
+        "tokens": [
+          {
+            "name": "label",
+            "type": "string",
+            "title": {
+              "en": "Label",
+              "fr": "Libellé"
+            },
+            "example": "HP SEMAINE"
+          },
+          {
+            "name": "index",
+            "type": "number",
+            "title": {
+              "en": "Index",
+              "fr": "Index"
+            },
+            "example": 2
+          },
+          {
+            "name": "price",
+            "type": "number",
+            "title": {
+              "en": "Price (€/kWh)",
+              "fr": "Prix (€/kWh)"
+            },
+            "example": 0.2403
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=zlinky_tic"
+          },
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=zlinky_tic",
+            "title": {
+              "en": "Device",
+              "fr": "Appareil"
+            }
+          }
+        ]
+      },
       {
         "id": "alarm_subscribe_power_capability_true",
         "title": {
@@ -495,6 +1033,97 @@
     ],
     "conditions": [
       {
+        "id": "tariff_change_within",
+        "title": {
+          "en": "Tariff changes within ... minutes",
+          "fr": "Le tarif change dans les ... minutes"
+        },
+        "titleFormatted": {
+          "en": "Tariff on [[device]] changes within [[minutes]] minutes",
+          "fr": "Le tarif de [[device]] change dans les [[minutes]] minutes"
+        },
+        "hint": {
+          "en": "Standard mode only. Uses the next-day profile sent by the meter, or the schedule learned from previous weeks. False when the next change is unknown.",
+          "fr": "Mode standard uniquement. Utilise le profil du lendemain transmis par le compteur, ou le programme appris les semaines précédentes. Faux si le prochain changement est inconnu."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=zlinky_tic"
+          },
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=zlinky_tic",
+            "title": {
+              "en": "Device",
+              "fr": "Appareil"
+            }
+          },
+          {
+            "name": "minutes",
+            "type": "number",
+            "min": 1,
+            "max": 1440,
+            "step": 1,
+            "placeholder": {
+              "en": "30",
+              "fr": "30"
+            },
+            "title": {
+              "en": "Minutes",
+              "fr": "Minutes"
+            }
+          }
+        ]
+      },
+      {
+        "id": "current_kwh_price_below",
+        "title": {
+          "en": "Current kWh price is at most ...",
+          "fr": "Le prix du kWh actuel est inférieur ou égal à ..."
+        },
+        "titleFormatted": {
+          "en": "Current kWh price on [[device]] is at most [[price]] €",
+          "fr": "Le prix du kWh actuel de [[device]] est inférieur ou égal à [[price]] €"
+        },
+        "hint": {
+          "en": "Uses the price entered for the current index. False when the price is unknown. Useful to start appliances when electricity is cheap, whatever the label of the period.",
+          "fr": "Utilise le prix saisi pour l'index en cours. Faux si le prix est inconnu. Pratique pour lancer un appareil quand l'électricité est bon marché, quel que soit le libellé de la période."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=zlinky_tic"
+          },
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=zlinky_tic",
+            "title": {
+              "en": "Device",
+              "fr": "Appareil"
+            }
+          },
+          {
+            "name": "price",
+            "type": "number",
+            "min": 0,
+            "step": 0.0001,
+            "placeholder": {
+              "en": "0.18",
+              "fr": "0,18"
+            },
+            "title": {
+              "en": "Price (€/kWh)",
+              "fr": "Prix (€/kWh)"
+            }
+          }
+        ]
+      },
+      {
         "id": "period_option_is",
         "title": {
           "en": "Period is ...",
@@ -579,14 +1208,34 @@
           }
         ]
       }
+    ],
+    "actions": [
+      {
+        "id": "reset_daily_cost",
+        "title": {
+          "en": "Reset the cost of the day",
+          "fr": "Remettre à zéro le coût du jour"
+        },
+        "titleFormatted": {
+          "en": "Reset the cost of the day on [[device]]",
+          "fr": "Remettre à zéro le coût du jour sur [[device]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=zlinky_tic"
+          }
+        ]
+      }
     ]
   },
   "capabilities": {
     "active_power_capability": {
       "type": "number",
       "title": {
-        "en": "Active energy",
-        "fr": "Énergie active"
+        "en": "Active power (30 min average)",
+        "fr": "Puissance active (moyenne 30 min)"
       },
       "uiComponent": "sensor",
       "getable": true,
@@ -677,6 +1326,28 @@
       "insights": false,
       "icon": "/assets/clock.svg"
     },
+    "current_kwh_price_capability": {
+      "type": "number",
+      "title": {
+        "en": "Current kWh price (deprecated)",
+        "fr": "Prix du kWh actuel (obsolète)"
+      },
+      "uiComponent": null,
+      "getable": true,
+      "setable": false,
+      "insights": false
+    },
+    "daily_cost_capability": {
+      "type": "number",
+      "title": {
+        "en": "Cost today (deprecated)",
+        "fr": "Coût du jour (obsolète)"
+      },
+      "uiComponent": null,
+      "getable": true,
+      "setable": false,
+      "insights": false
+    },
     "debug_capability": {
       "type": "string",
       "title": {
@@ -754,6 +1425,23 @@
       "insights": true,
       "icon": "/assets/meter_power.svg"
     },
+    "estimated_active_power_capability": {
+      "type": "number",
+      "title": {
+        "en": "Estimated active power",
+        "fr": "Puissance active estimée"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "W"
+      },
+      "decimals": 0,
+      "min": 0,
+      "insights": true,
+      "icon": "/assets/flash.svg"
+    },
     "full_hour_blue_capability": {
       "type": "number",
       "title": {
@@ -818,6 +1506,40 @@
       "insights": true,
       "icon": "/assets/meter_power.svg"
     },
+    "max_apparent_power_today_capability": {
+      "type": "number",
+      "title": {
+        "en": "Max apparent power today",
+        "fr": "Puissance apparente max aujourd’hui"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "kVA"
+      },
+      "decimals": 2,
+      "min": 0,
+      "insights": true,
+      "icon": "/assets/flash.svg"
+    },
+    "max_apparent_power_yesterday_capability": {
+      "type": "number",
+      "title": {
+        "en": "Max apparent power yesterday",
+        "fr": "Puissance apparente max hier"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "kVA"
+      },
+      "decimals": 2,
+      "min": 0,
+      "insights": true,
+      "icon": "/assets/flash.svg"
+    },
     "maximal_intensity_capability": {
       "type": "number",
       "title": {
@@ -833,6 +1555,74 @@
       "step": 0.5,
       "insights": true,
       "icon": "/assets/current-ac.svg"
+    },
+    "measure_current_kwh_price_capability": {
+      "type": "number",
+      "title": {
+        "en": "Current kWh price",
+        "fr": "Prix du kWh actuel"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "€/kWh"
+      },
+      "decimals": 4,
+      "min": 0,
+      "insights": true,
+      "icon": "/assets/euro.svg"
+    },
+    "measure_daily_cost_capability": {
+      "type": "number",
+      "title": {
+        "en": "Cost today",
+        "fr": "Coût du jour"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "€"
+      },
+      "decimals": 2,
+      "min": 0,
+      "insights": true,
+      "icon": "/assets/euro.svg"
+    },
+    "measure_last_month_cost_capability": {
+      "type": "number",
+      "title": {
+        "en": "Cost last month",
+        "fr": "Coût du mois dernier"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "€"
+      },
+      "decimals": 2,
+      "min": 0,
+      "insights": true,
+      "icon": "/assets/euro.svg"
+    },
+    "measure_month_cost_capability": {
+      "type": "number",
+      "title": {
+        "en": "Cost this month",
+        "fr": "Coût du mois"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "€"
+      },
+      "decimals": 2,
+      "min": 0,
+      "insights": true,
+      "icon": "/assets/euro.svg"
     },
     "measure_pulses": {
       "type": "number",
@@ -853,6 +1643,23 @@
       "step": 1,
       "insights": true
     },
+    "measure_yesterday_cost_capability": {
+      "type": "number",
+      "title": {
+        "en": "Cost yesterday",
+        "fr": "Coût d'hier"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "€"
+      },
+      "decimals": 2,
+      "min": 0,
+      "insights": true,
+      "icon": "/assets/euro.svg"
+    },
     "mode_capability": {
       "type": "string",
       "title": {
@@ -865,6 +1672,18 @@
       "step": 0.5,
       "insights": false,
       "icon": "/assets/zap.svg"
+    },
+    "next_tariff_change_capability": {
+      "type": "string",
+      "title": {
+        "en": "Next tariff change",
+        "fr": "Prochain changement de tarif"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": false,
+      "icon": "/assets/clock.svg"
     },
     "phase_1_apparent_power_capability": {
       "type": "number",
@@ -1196,6 +2015,23 @@
       "insights": true,
       "icon": "/assets/current-ac.svg"
     },
+    "subscribed_power_capability": {
+      "type": "number",
+      "title": {
+        "en": "Subscribed power",
+        "fr": "Puissance souscrite"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "units": {
+        "en": "kVA"
+      },
+      "decimals": 0,
+      "min": 0,
+      "insights": true,
+      "icon": "/assets/contract.svg"
+    },
     "summation_delivered_capability": {
       "type": "number",
       "title": {
@@ -1211,6 +2047,18 @@
       "step": 0.5,
       "insights": true,
       "icon": "/assets/zap.svg"
+    },
+    "supplier_tariff_capability": {
+      "type": "string",
+      "title": {
+        "en": "Supplier tariff",
+        "fr": "Tarif fournisseur en cours"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": false,
+      "icon": "/assets/clock.svg"
     },
     "today_color_capability": {
       "type": "enum",
@@ -1311,6 +2159,29 @@
       "step": 0.5,
       "insights": false,
       "icon": "/assets/sun.svg"
+    },
+    "tomorrow_schedule_capability": {
+      "type": "string",
+      "title": {
+        "en": "Tomorrow’s schedule",
+        "fr": "Programme de demain"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": false,
+      "icon": "/assets/clock.svg"
+    },
+    "yesterday_cost_capability": {
+      "type": "number",
+      "title": {
+        "en": "Cost yesterday (deprecated)",
+        "fr": "Coût d'hier (obsolète)"
+      },
+      "uiComponent": null,
+      "getable": true,
+      "setable": false,
+      "insights": false
     }
   }
 }

@@ -1,0 +1,17 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Estimated active power",
+    "fr": "Puissance active estimée"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "units": {
+    "en": "W"
+  },
+  "decimals": 0,
+  "min": 0,
+  "insights": true,
+  "icon": "/assets/flash.svg"
+}

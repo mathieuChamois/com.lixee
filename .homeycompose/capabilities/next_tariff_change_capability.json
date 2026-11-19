@@ -1,0 +1,12 @@
+{
+  "type": "string",
+  "title": {
+    "en": "Next tariff change",
+    "fr": "Prochain changement de tarif"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": false,
+  "icon": "/assets/clock.svg"
+}

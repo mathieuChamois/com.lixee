@@ -1,0 +1,12 @@
+{
+  "type": "string",
+  "title": {
+    "en": "Supplier tariff",
+    "fr": "Tarif fournisseur en cours"
+  },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": false,
+  "icon": "/assets/clock.svg"
+}

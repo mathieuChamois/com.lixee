@@ -247,5 +247,9 @@
   },
   "1.5.4": {
     "en": "refactor HPHC for standard"
+  },
+  "2.0.0": {
+    "en": "New ZiPulses driver (water meter, pulse counter). Standard mode: price per supplier index and next-day schedule. Fix three-phase producer meters wrongly shown as single-phase. GitHub Sponsors link.",
+    "fr": "Nouveau driver ZiPulses (compteur d'eau à impulsions). Mode standard : prix par index fournisseur et programme du lendemain. Correction des compteurs triphasés producteurs affichés à tort en monophasé. Lien GitHub Sponsors."
   }
 }

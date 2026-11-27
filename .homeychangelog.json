@@ -251,5 +251,9 @@
   "2.0.0": {
     "en": "New ZiPulses driver (water meter, pulse counter). Standard mode: price per supplier index and next-day schedule. Fix three-phase producer meters wrongly shown as single-phase. GitHub Sponsors link.",
     "fr": "Nouveau driver ZiPulses (compteur d'eau à impulsions). Mode standard : prix par index fournisseur et programme du lendemain. Correction des compteurs triphasés producteurs affichés à tort en monophasé. Lien GitHub Sponsors."
+  },
+  "2.0.1": {
+    "en": "App Store certification fixes: new ZiPulses driver image and icon, donation link moved to the App Store button.",
+    "fr": "Corrections pour la certification App Store : nouvelle image et icône du driver ZiPulses, lien de don déplacé vers le bouton de l'App Store."
   }
 }
